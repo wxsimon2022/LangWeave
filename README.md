@@ -37,14 +37,19 @@ flowchart TB
 | `LoggingMiddleware` | 记录 model 与 tool 调用 |
 | `SupervisorBuilder` | 监督者模式，将子 Agent 包装为 handoff 工具 |
 
-## 快速开始
+## 快速开始（DeepSeek）
 
 ```bash
 pip install -r requirements.txt
-# 使用 OpenAI 时额外安装:
-# pip install langchain-openai
-export OPENAI_API_KEY=sk-...
-export LANGWEAVE_MODEL=openai:gpt-4o-mini
+cp .env.example .env
+# 编辑 .env，填入 DEEPSEEK_API_KEY（启动时会自动加载，无需手动 export）
+```
+
+`.env` 示例：
+
+```env
+DEEPSEEK_API_KEY=sk-your-key
+LANGWEAVE_MODEL=deepseek:deepseek-chat
 ```
 
 ```python
@@ -54,13 +59,30 @@ from langweave.tools import calculator
 agent = (
     AgentBuilder()
     .with_name("math")
-    .with_model("openai:gpt-4o-mini")
+    .with_deepseek("deepseek-chat", temperature=0.3)
     .with_tools([calculator])
     .with_system_prompt("Use tools for arithmetic.")
     .build()
 )
 
-print(agent.chat("What is 99 * 101?"))
+print(agent.chat("99 * 101 等于多少？"))
+```
+
+也可直接写模型字符串或使用工厂函数：
+
+```python
+from langweave import AgentBuilder, chat_model
+
+agent = AgentBuilder().with_model(chat_model("deepseek-chat")).build()
+# 或: .with_model("deepseek:deepseek-reasoner")
+```
+
+### OpenAI（可选）
+
+```bash
+pip install langchain-openai
+export OPENAI_API_KEY=sk-...
+export LANGWEAVE_MODEL=openai:gpt-4o-mini
 ```
 
 ## FastAPI Web 服务
@@ -121,9 +143,13 @@ print(supervisor.chat("Explain async/await and give a tiny example."))
 
 | 变量 | 说明 |
 |------|------|
-| `LANGWEAVE_MODEL` | 默认模型（如 `openai:gpt-4o-mini`） |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥（推荐） |
+| `LANGWEAVE_MODEL` | 默认模型（默认 `deepseek:deepseek-chat`） |
+| `LANGWEAVE_TEMPERATURE` | 采样温度 |
+| `LANGWEAVE_MAX_TOKENS` | 最大生成 token |
 | `LANGWEAVE_SYSTEM_PROMPT` | 默认 system prompt |
 | `LANGWEAVE_DEBUG` | 设为 `true` 开启 LangGraph debug |
+| `OPENAI_API_KEY` | 使用 OpenAI 模型时配置 |
 
 ## 测试
 
@@ -139,8 +165,9 @@ pytest tests/ -q
 ```
 langweave/
   agent.py          # Agent 封装
-  builder.py        # AgentBuilder
+  builder.py        # AgentBuilder（含 with_deepseek）
   config.py         # AgentSettings
+  models/           # DeepSeek 等模型辅助
   registry.py       # AgentRegistry
   middleware/       # 自定义中间件
   tools/            # 工具与 ToolRegistry

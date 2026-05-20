@@ -15,18 +15,19 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.store.base import BaseStore
 
 from langweave.agent import Agent
-from langweave.config import AgentSettings
+from langweave.config import AgentSettings, deepseek_api_key, load_dotenv
 
 
 class AgentBuilder:
     """Configure model, tools, middleware, and compile into an `Agent`."""
 
     def __init__(self, settings: AgentSettings | None = None) -> None:
+        load_dotenv()
         self._settings = settings or AgentSettings.from_env()
         self._name: str | None = None
         self._description: str | None = None
         self._model: str | BaseChatModel | None = self._settings.model
-        self._model_kwargs: dict[str, Any] = {}
+        self._model_kwargs: dict[str, Any] = self._settings.model_kwargs()
         self._tools: list[BaseTool | Callable[..., Any] | dict[str, Any]] = []
         self._middleware: list[AgentMiddleware[Any, Any, Any]] = []
         self._system_prompt: str | SystemMessage | None = self._settings.system_prompt
@@ -51,6 +52,29 @@ class AgentBuilder:
         **kwargs: Any,
     ) -> AgentBuilder:
         self._model = model
+        self._model_kwargs.update(kwargs)
+        return self
+
+    def with_deepseek(
+        self,
+        model: str = "deepseek-chat",
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        api_key: str | None = None,
+        **kwargs: Any,
+    ) -> AgentBuilder:
+        """Configure a DeepSeek model (`deepseek:...` prefix for init_chat_model)."""
+        from langweave.models.deepseek import model_id
+
+        self._model = model_id(model)
+        if temperature is not None:
+            kwargs["temperature"] = temperature
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+        key = api_key or self._settings.deepseek_api_key or deepseek_api_key()
+        if key:
+            kwargs["api_key"] = key
         self._model_kwargs.update(kwargs)
         return self
 
@@ -114,7 +138,22 @@ class AgentBuilder:
             msg = "Model is required. Call with_model() or set LANGWEAVE_MODEL."
             raise ValueError(msg)
         if isinstance(self._model, str):
-            return init_chat_model(self._model, **self._model_kwargs)
+            kwargs = dict(self._model_kwargs)
+            is_deepseek = self._model.startswith("deepseek")
+            if is_deepseek and "api_key" not in kwargs:
+                key = (
+                    self._settings.deepseek_api_key
+                    or deepseek_api_key()
+                )
+                if key:
+                    kwargs["api_key"] = key
+                else:
+                    msg = (
+                        "DEEPSEEK_API_KEY is not set. "
+                        "Add it to .env in the project root or export DEEPSEEK_API_KEY=sk-..."
+                    )
+                    raise ValueError(msg)
+            return init_chat_model(self._model, **kwargs)
         return self._model
 
     def build(self) -> Agent:

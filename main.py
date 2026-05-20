@@ -1,5 +1,9 @@
 """ASGI entrypoint: uvicorn main:app --reload"""
 
+from langweave.config import load_dotenv
+
+load_dotenv()
+
 from langweave import AgentBuilder
 from langweave.config import AgentSettings
 from langweave.tools import calculator, current_time
