@@ -120,7 +120,23 @@ def setup(registry: AgentRegistry) -> None:
 app = create_app(on_startup=setup)
 ```
 
-文档：启动后访问 `http://127.0.0.1:8000/docs`。
+### API 文档（目录树 + Swagger 2）
+
+默认 **按 URL 目录层级** 展示接口（左树右详情），规范仍为 Swagger 2.0：
+
+| 地址 | 说明 |
+|------|------|
+| [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) | **目录树文档**（可在线填参并「发送请求」） |
+| [http://127.0.0.1:8000/docs/swagger](http://127.0.0.1:8000/docs/swagger) | 经典 Swagger UI |
+| [http://127.0.0.1:8000/swagger.json](http://127.0.0.1:8000/swagger.json) | Swagger 2.0 JSON |
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+`setup_swagger2(..., docs_mode="tree")`；若要仅经典 Swagger UI：`docs_mode="swagger"`。
+
+元数据见 `langweave/web/openapi.py`，目录页实现见 `langweave/web/tree_docs.py`。
 
 ### 业务层说明
 

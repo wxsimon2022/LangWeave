@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 IntentType = Literal["general_chat", "order_query", "calculation", "unknown"]
 
@@ -29,8 +29,16 @@ class UserIntent(BaseModel):
 
 
 class IntentRecognizeRequest(BaseModel):
-    message: str = Field(..., min_length=1)
-    thread_id: str | None = None
+    """意图识别请求。"""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"message": "帮我查订单10001", "thread_id": None}],
+        }
+    )
+
+    message: str = Field(..., min_length=1, description="待分类的用户输入")
+    thread_id: str | None = Field(default=None, description="可选会话 ID")
 
 
 class IntentRecognizeResponse(BaseModel):

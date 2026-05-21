@@ -14,34 +14,46 @@ from app.schemas.intent import (
     IntentRecognizeResponse,
 )
 from app.services.intent_service import IntentService
+from langweave.web.response import ApiResponse
 
 router = APIRouter(prefix="/api/v1/intent", tags=["intent"])
 
 
-@router.post("/recognize", response_model=IntentRecognizeResponse)
+@router.post(
+    "/recognize",
+    response_model=ApiResponse[IntentRecognizeResponse],
+    summary="意图识别",
+)
 async def recognize_intent(
     body: IntentRecognizeRequest,
     service: Annotated[IntentService, Depends(get_intent_service)],
-) -> IntentRecognizeResponse:
-    """Call the intent agent and return structured classification only."""
+) -> ApiResponse[IntentRecognizeResponse]:
+    """调用 intent Agent，返回结构化意图（intent、slots、target_agent 等）。"""
     try:
         intent = await service.recognize(body.message, thread_id=body.thread_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return IntentRecognizeResponse(intent=intent, thread_id=body.thread_id)
+    return ApiResponse.ok(
+        IntentRecognizeResponse(intent=intent, thread_id=body.thread_id)
+    )
 
 
-@router.post("/chat", response_model=IntentChatResponse)
+@router.post(
+    "/chat",
+    response_model=ApiResponse[IntentChatResponse],
+    summary="意图识别并回复",
+)
 async def intent_chat(
     body: IntentChatRequest,
     service: Annotated[IntentService, Depends(get_intent_service)],
-) -> IntentChatResponse:
-    """Recognize intent, then invoke target_agent (default: assistant) for the reply."""
+) -> ApiResponse[IntentChatResponse]:
+    """先识别意图，再调用 target_agent（默认 assistant）生成业务回复。"""
     try:
-        return await service.recognize_and_chat(
+        result = await service.recognize_and_chat(
             body.message,
             thread_id=body.thread_id,
             auto_reply=body.auto_reply,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ApiResponse.ok(result)

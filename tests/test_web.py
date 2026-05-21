@@ -13,6 +13,8 @@ from langweave import AgentBuilder
 from langweave.registry import AgentRegistry
 from langweave.web import create_app
 
+from tests.conftest import unwrap_response
+
 
 @pytest.fixture
 def client() -> TestClient:
@@ -30,13 +32,16 @@ def client() -> TestClient:
 def test_health(client: TestClient) -> None:
     r = client.get("/health")
     assert r.status_code == 200
-    assert r.json()["status"] == "ok"
+    body = r.json()
+    assert body["code"] == 200
+    assert unwrap_response(body)["status"] == "ok"
 
 
 def test_list_agents(client: TestClient) -> None:
     r = client.get("/api/v1/agents")
     assert r.status_code == 200
-    names = [a["name"] for a in r.json()["agents"]]
+    assert r.json()["code"] == 200
+    names = [a["name"] for a in unwrap_response(r.json())["agents"]]
     assert names == ["demo"]
 
 
@@ -46,7 +51,10 @@ def test_chat(client: TestClient) -> None:
         json={"message": "hello"},
     )
     assert r.status_code == 200
-    data = r.json()
+    body = r.json()
+    assert body["code"] == 200
+    assert body["message"] == ""
+    data = unwrap_response(body)
     assert data["content"] == "web reply"
     assert data["agent"] == "demo"
 
@@ -57,7 +65,7 @@ def test_invoke(client: TestClient) -> None:
         json={"message": "hi"},
     )
     assert r.status_code == 200
-    assert "messages" in r.json()["state"]
+    assert unwrap_response(r.json())["state"]["messages"]
 
 
 def test_stream(client: TestClient) -> None:
@@ -70,7 +78,8 @@ def test_stream(client: TestClient) -> None:
     lines = [ln for ln in r.text.split("\n") if ln.startswith("data: ")]
     assert len(lines) >= 1
     last = json.loads(lines[-1].removeprefix("data: "))
-    assert last["event"] == "done"
+    assert last["code"] == 200
+    assert unwrap_response(last)["event"] == "done"
 
 
 def test_unknown_agent(client: TestClient) -> None:
@@ -79,3 +88,7 @@ def test_unknown_agent(client: TestClient) -> None:
         json={"message": "x"},
     )
     assert r.status_code == 404
+    body = r.json()
+    assert body["code"] == 404
+    assert body["data"] is None
+    assert body["message"]

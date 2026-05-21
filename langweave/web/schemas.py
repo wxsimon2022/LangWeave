@@ -4,21 +4,34 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, description="User message")
+    """Agent 对话请求体。"""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"message": "你好，介绍一下你自己", "thread_id": "session-001"},
+            ]
+        }
+    )
+
+    message: str = Field(..., min_length=1, description="用户输入文本", examples=["你好"])
     thread_id: str | None = Field(
         default=None,
-        description="Conversation thread id for checkpointer-backed sessions",
+        description="会话线程 ID（启用 checkpointer 时用于多轮上下文）",
+        examples=["session-001"],
     )
 
 
 class ChatResponse(BaseModel):
-    content: str
-    agent: str
-    thread_id: str | None = None
+    """Agent 对话响应。"""
+
+    content: str = Field(description="模型回复正文")
+    agent: str = Field(description="实际处理的 Agent 名称")
+    thread_id: str | None = Field(default=None, description="会话线程 ID")
 
 
 class InvokeRequest(BaseModel):

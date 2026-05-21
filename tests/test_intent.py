@@ -78,4 +78,6 @@ def test_intent_api_recognize() -> None:
         json={"message": "1+2等于几"},
     )
     assert r.status_code == 200
-    assert r.json()["intent"]["intent"] == "calculation"
+    body = r.json()
+    assert body["code"] == 200
+    assert body["data"]["intent"]["intent"] == "calculation"
