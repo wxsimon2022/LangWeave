@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.api.routes import router as business_router
+from app.api import include_business_routers
 from langweave.web import create_app
 from langweave.web.swagger2 import setup_swagger2
+
+pytest.importorskip("fastapi_swagger2")
 
 
 def _client_swagger2() -> TestClient:
     app = create_app(doc_mode="swagger2")
-    app.include_router(business_router)
+    include_business_routers(app)
     setup_swagger2(app)
     return TestClient(app)
 
 
 def _client_openapi3() -> TestClient:
     app = create_app(doc_mode="openapi3")
-    app.include_router(business_router)
+    include_business_routers(app)
     return TestClient(app)
 
 

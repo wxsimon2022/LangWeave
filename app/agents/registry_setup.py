@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from langweave import AgentBuilder
 from langweave.config import AgentSettings
 from langweave.registry import AgentRegistry
 

@@ -1,4 +1,5 @@
-"""Optional business-specific HTTP routes (extend langweave.web).
+"""Business API exports."""
 
-Mount routers from here in main.py when you add custom endpoints beyond /api/v1/agents.
-"""
+from app.api.router import include_business_routers, router
+
+__all__ = ["router", "include_business_routers"]

@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.intent import UserIntent
+from app.api import include_business_routers
 from app.services.intent_service import IntentService
 from langweave.registry import AgentRegistry
 from langweave.web import create_app
@@ -67,10 +68,8 @@ def test_intent_api_recognize() -> None:
     )
     registry._agents["intent"] = intent_agent
 
-    from app.api.routes import router as business_router
-
     app = create_app(registry)
-    app.include_router(business_router)
+    include_business_routers(app)
 
     client = TestClient(app)
     r = client.post(

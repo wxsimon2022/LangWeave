@@ -51,6 +51,7 @@ def test_auto_thread_id_when_checkpointer() -> None:
 
 
 def test_emotional_agent_has_checkpointer() -> None:
+    pytest.importorskip("langchain_deepseek")
     from app.agents.emotional import build_emotional_agent
 
     agent = build_emotional_agent()

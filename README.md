@@ -120,6 +120,8 @@ def setup(registry: AgentRegistry) -> None:
 app = create_app(on_startup=setup)
 ```
 
+当前项目若直接运行内置业务应用，入口统一在 `app/bootstrap.py`，`main.py` 仅保留 ASGI 启动引用。
+
 ### API 文档（目录树 + Swagger 2）
 
 默认 **按 URL 目录层级** 展示接口（左树右详情），规范仍为 Swagger 2.0：
