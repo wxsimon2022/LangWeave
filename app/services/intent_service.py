@@ -50,7 +50,7 @@ class IntentService:
         target = intent.target_agent or self.DEFAULT_TARGET
         worker = self._get_agent(target)
         enriched = self._build_worker_message(message, intent)
-        reply = await worker.achat(enriched, thread_id=thread_id)
+        reply, _ = await worker.achat(enriched, thread_id=thread_id)
         return IntentChatResponse(
             intent=intent,
             reply=reply,

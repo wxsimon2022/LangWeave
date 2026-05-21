@@ -30,7 +30,7 @@ def intent_service() -> IntentService:
         }
     )
     worker = MagicMock()
-    worker.achat = AsyncMock(return_value="订单已发货")
+    worker.achat = AsyncMock(return_value=("订单已发货", "session-1"))
     registry.register(intent_agent, overwrite=True)
     intent_agent.name = "intent"
     registry._agents["intent"] = intent_agent

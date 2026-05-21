@@ -203,6 +203,33 @@ POST /api/v1/agents/{agent_name}/chat
 POST /api/v1/agents/intent/chat   # intent agent 只做分类（结构化输出在 invoke 里）
 ```
 
+### 多轮对话记忆
+
+`assistant`、`emotional` 已启用 LangGraph **checkpointer**（内存会话，重启服务后清空）。
+
+1. 首次对话可不传 `thread_id`，响应 `data.thread_id` 会返回会话 ID  
+2. 后续请求带上同一 `thread_id`，Agent 会记住此前消息  
+
+```bash
+# 第一轮
+curl -X POST http://127.0.0.1:8000/api/v1/agents/emotional/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "最近很焦虑"}'
+# 记下返回的 data.thread_id
+
+# 第二轮（同一 thread_id）
+curl -X POST http://127.0.0.1:8000/api/v1/agents/emotional/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "还是睡不着", "thread_id": "上一步的-thread-id"}'
+```
+
+| 接口 | 说明 |
+|------|------|
+| `GET /api/v1/sessions/{agent}/{thread_id}` | 查看会话历史 |
+| `DELETE /api/v1/sessions/{agent}/{thread_id}` | 清空该会话记忆 |
+
+关闭记忆：`LANGWEAVE_MEMORY_ENABLED=false`
+
 ## 多 Agent（Supervisor）
 
 ```python

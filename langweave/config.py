@@ -70,6 +70,10 @@ class AgentSettings(BaseModel):
         description="DeepSeek API key; falls back to DEEPSEEK_API_KEY env",
     )
     debug: bool = Field(default=False, description="Enable LangGraph debug mode")
+    memory_enabled: bool = Field(
+        default=True,
+        description="Enable LangGraph checkpointer for multi-turn chat",
+    )
 
     def model_kwargs(self) -> dict[str, Any]:
         """Extra kwargs for `init_chat_model` derived from settings."""
@@ -96,6 +100,8 @@ class AgentSettings(BaseModel):
             data["max_tokens"] = int(max_tok)
         if debug := _env("DEBUG"):
             data["debug"] = debug.lower() in ("1", "true", "yes")
+        if memory := _env("MEMORY_ENABLED"):
+            data["memory_enabled"] = memory.lower() not in ("0", "false", "no")
         if key := deepseek_api_key():
             data["deepseek_api_key"] = key
         data.update(overrides)

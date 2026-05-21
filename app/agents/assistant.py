@@ -5,12 +5,13 @@ from __future__ import annotations
 from langweave import Agent, AgentBuilder
 from langweave.config import AgentSettings
 
+from app.agents._memory import with_conversation_memory
 from app.tools import get_default_tools
 
 
 def build_assistant_agent(settings: AgentSettings | None = None) -> Agent:
     settings = settings or AgentSettings.from_env()
-    return (
+    builder = (
         AgentBuilder(settings)
         .with_name("assistant")
         .with_description("General assistant with calculator and clock tools")
@@ -19,5 +20,5 @@ def build_assistant_agent(settings: AgentSettings | None = None) -> Agent:
             or "You are a helpful assistant. Use tools when needed."
         )
         .with_tools(get_default_tools())
-        .build()
     )
+    return with_conversation_memory(builder, settings).build()

@@ -52,12 +52,12 @@ async def chat(
     agent: Annotated[Agent, Depends(get_agent)],
 ) -> ApiResponse[ChatResponse]:
     """向指定 Agent 发送用户消息，返回模型回复文本。"""
-    content = await agent.achat(body.message, thread_id=body.thread_id)
+    content, thread_id = await agent.achat(body.message, thread_id=body.thread_id)
     return ApiResponse.ok(
         ChatResponse(
             content=content,
             agent=agent.name,
-            thread_id=body.thread_id,
+            thread_id=thread_id or body.thread_id,
         )
     )
 

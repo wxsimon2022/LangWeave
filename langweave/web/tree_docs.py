@@ -286,7 +286,7 @@ TREE_DOCS_HTML = """<!DOCTYPE html>
     function defaultForParam(p) {
       if (p.default !== undefined) return String(p.default);
       if (p.example !== undefined) return String(p.example);
-      if (p.name === "agent_name") return "assistant";
+      if (p.name === "agent_name") return "emotional";
       if (p.name === "message") return "你好";
       return "";
     }

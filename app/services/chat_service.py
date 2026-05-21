@@ -35,7 +35,7 @@ class ChatService:
         message: str,
         *,
         thread_id: str | None = None,
-    ) -> str:
+    ) -> tuple[str, str | None]:
         message = message.strip()
         if not message:
             msg = "Message cannot be empty"

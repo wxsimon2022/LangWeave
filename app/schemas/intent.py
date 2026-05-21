@@ -6,7 +6,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-IntentType = Literal["general_chat", "order_query", "calculation", "unknown"]
+IntentType = Literal[
+    "emotional_chat",
+    "general_chat",
+    "order_query",
+    "calculation",
+    "unknown",
+]
 
 
 class UserIntent(BaseModel):

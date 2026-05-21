@@ -48,6 +48,10 @@ TAGS_METADATA: list[dict[str, Any]] = [
         "name": "intent",
         "description": "意图识别：结构化分类用户输入，并可路由到目标 Agent。",
     },
+    {
+        "name": "sessions",
+        "description": "多轮会话记忆：查询历史、清空上下文（需 thread_id）。",
+    },
 ]
 
 SWAGGER_UI_PARAMETERS: dict[str, Any] = {

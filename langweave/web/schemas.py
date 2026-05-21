@@ -21,7 +21,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="用户输入文本", examples=["你好"])
     thread_id: str | None = Field(
         default=None,
-        description="会话线程 ID（启用 checkpointer 时用于多轮上下文）",
+        description="会话 ID；不传则自动生成。同一 thread_id 可多轮记住上下文",
         examples=["session-001"],
     )
 
@@ -31,7 +31,10 @@ class ChatResponse(BaseModel):
 
     content: str = Field(description="模型回复正文")
     agent: str = Field(description="实际处理的 Agent 名称")
-    thread_id: str | None = Field(default=None, description="会话线程 ID")
+    thread_id: str | None = Field(
+        default=None,
+        description="会话 ID（多轮记忆）；首次对话未传时会返回新生成的 id",
+    )
 
 
 class InvokeRequest(BaseModel):
