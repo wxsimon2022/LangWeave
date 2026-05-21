@@ -77,6 +77,7 @@ def create_app(
         },
         license_info={
             "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT",
         },
     )
     app.state.registry = reg

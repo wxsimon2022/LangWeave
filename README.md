@@ -301,3 +301,11 @@ tests/
 3. 在应用层补充注册表、监督者编排与内置工具
 
 可直接在 `AgentBuilder.with_middleware()` 中接入 [LangChain 内置中间件](https://docs.langchain.com/oss/python/langchain/middleware)。
+
+## 开源协议
+
+本项目采用 [MIT License](LICENSE) 发布。
+
+- 可自由使用、修改、分发与商用
+- 需保留版权声明与许可全文
+- 软件按「原样」提供，不提供任何担保

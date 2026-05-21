@@ -3,6 +3,7 @@ name = "langweave"
 version = "0.1.0"
 description = "LangWeave (织语): LangChain agents framework with FastAPI"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "langchain>=1.3",
