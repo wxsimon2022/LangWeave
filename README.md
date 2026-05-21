@@ -134,6 +134,59 @@ app = create_app(on_startup=setup)
 
 新增 Agent：在 `app/agents/` 增加模块，并在 `registry_setup.py` 里 `register`。
 
+### 接口里用 Agent 做意图识别
+
+流程：**专用 `intent` Agent（结构化输出）→ `IntentService` → HTTP 路由**
+
+```
+POST /api/v1/intent/recognize   # 只识别意图
+POST /api/v1/intent/chat        # 识别 + 路由到 target_agent 并回复
+```
+
+```bash
+# 仅意图识别
+curl -X POST http://127.0.0.1:8000/api/v1/intent/recognize \
+  -H "Content-Type: application/json" \
+  -d '{"message": "帮我查订单10001到哪了"}'
+
+# 识别后自动交给 assistant 处理
+curl -X POST http://127.0.0.1:8000/api/v1/intent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "帮我查订单10001到哪了"}'
+```
+
+响应示例（`/recognize`）：
+
+```json
+{
+  "intent": {
+    "intent": "order_query",
+    "confidence": 0.91,
+    "slots": {"order_id": "10001"},
+    "target_agent": "assistant",
+    "reasoning": "用户询问订单物流"
+  }
+}
+```
+
+代码中调用（非 HTTP）：
+
+```python
+from app.services import IntentService
+from langweave.web.deps import get_registry  # 或自建 AgentRegistry
+
+service = IntentService(registry)
+intent = await service.recognize("查订单10001")
+result = await service.recognize_and_chat("查订单10001")  # 含 reply
+```
+
+直接调某个 Agent（无意图层）仍用：
+
+```bash
+POST /api/v1/agents/{agent_name}/chat
+POST /api/v1/agents/intent/chat   # intent agent 只做分类（结构化输出在 invoke 里）
+```
+
 ## 多 Agent（Supervisor）
 
 ```python
