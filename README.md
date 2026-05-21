@@ -122,6 +122,18 @@ app = create_app(on_startup=setup)
 
 文档：启动后访问 `http://127.0.0.1:8000/docs`。
 
+### 业务层说明
+
+| 目录 | 职责 |
+|------|------|
+| `app/agents/` | 组装并注册业务 Agent（见 `registry_setup.py`） |
+| `app/tools/` | 领域工具，在 `builtin.py` 中汇总 |
+| `app/services/` | 用例服务，封装校验与 Agent 调用 |
+| `app/handlers/` | 多步工作流、异步任务 |
+| `app/api/` | 扩展 REST 路由（挂到 `main.py`） |
+
+新增 Agent：在 `app/agents/` 增加模块，并在 `registry_setup.py` 里 `register`。
+
 ## 多 Agent（Supervisor）
 
 ```python
@@ -163,17 +175,23 @@ pytest tests/ -q
 ## 目录结构
 
 ```
-langweave/
-  agent.py          # Agent 封装
-  builder.py        # AgentBuilder（含 with_deepseek）
-  config.py         # AgentSettings
-  models/           # DeepSeek 等模型辅助
-  registry.py       # AgentRegistry
-  middleware/       # 自定义中间件
-  tools/            # 工具与 ToolRegistry
-  orchestration/    # Supervisor / handoff
-  web/              # FastAPI 路由与应用工厂
-main.py             # uvicorn 入口
+langweave/            # 框架层（通用 Agent 能力）
+  agent.py
+  builder.py
+  config.py
+  models/
+  registry.py
+  middleware/
+  tools/              # 框架内置工具（calculator 等）
+  orchestration/
+  web/                # 通用 HTTP API
+app/                  # 业务层（你的应用逻辑）
+  agents/             # Agent 定义与注册
+  tools/              # 业务工具（如订单查询）
+  services/           # 业务服务（ChatService 等）
+  handlers/           # 复杂流程 / 批处理
+  api/                # 可选：业务专属 HTTP 路由
+main.py               # 入口，仅组装框架 + 业务
 examples/
 tests/
 ```
