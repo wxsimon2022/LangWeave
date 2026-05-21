@@ -1,17 +1,5 @@
-"""Compose framework tools and business tools for agents."""
+"""Compatibility module for tool catalog."""
 
-from __future__ import annotations
+from app.domain.tools.catalog import get_default_tools
 
-from collections.abc import Sequence
-from typing import Any
-
-from langchain_core.tools import BaseTool
-
-from langweave.tools import calculator, current_time
-
-from app.tools.order import query_order_status
-
-
-def get_default_tools() -> list[BaseTool | Any]:
-    """Tools exposed to the default assistant agent."""
-    return [calculator, current_time, query_order_status]
+__all__ = ["get_default_tools"]

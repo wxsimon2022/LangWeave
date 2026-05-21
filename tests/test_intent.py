@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.application.services import IntentService
 from app.schemas.intent import UserIntent
 from app.api import include_business_routers
-from app.services.intent_service import IntentService
 from langweave.registry import AgentRegistry
 from langweave.web import create_app
 

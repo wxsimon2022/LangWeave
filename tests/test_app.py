@@ -6,8 +6,8 @@ import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
 
-from app.services import ChatService
-from app.tools.order import query_order_status
+from app.application.services import ChatService
+from app.domain.tools import query_order_status
 from langweave.registry import AgentRegistry
 
 

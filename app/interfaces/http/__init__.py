@@ -1,4 +1,4 @@
-"""Compatibility module for HTTP router aggregation."""
+"""HTTP interface adapters."""
 
 from app.interfaces.http.router import include_business_routers, router
 

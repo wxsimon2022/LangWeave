@@ -1,4 +1,4 @@
-"""Compatibility module for legacy agent registration imports."""
+"""Domain agent definitions and registration."""
 
 from app.domain.agents.registry import register_agents
 

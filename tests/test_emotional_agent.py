@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
 
-from app.agents.emotional import build_emotional_agent
-from app.agents.registry_setup import register_agents
+from app.domain.agents.emotional import build_emotional_agent
+from app.domain.agents.registry import register_agents
 from langweave.registry import AgentRegistry
 
 
 def test_emotional_agent_registered() -> None:
+    pytest.importorskip("langchain_deepseek")
     registry = AgentRegistry()
     register_agents(registry)
     assert "emotional" in registry.list_names()

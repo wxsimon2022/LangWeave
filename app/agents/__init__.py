@@ -1,5 +1,5 @@
-"""Business agent definitions and registration."""
+"""Compatibility exports for legacy agent imports."""
 
-from app.agents.registry_setup import register_agents
+from app.domain.agents import register_agents
 
 __all__ = ["register_agents"]

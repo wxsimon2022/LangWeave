@@ -144,13 +144,15 @@ uvicorn main:app --reload --port 8000
 
 | 目录 | 职责 |
 |------|------|
-| `app/agents/` | 组装并注册业务 Agent（见 `registry_setup.py`） |
-| `app/tools/` | 领域工具，在 `builtin.py` 中汇总 |
-| `app/services/` | 用例服务，封装校验与 Agent 调用 |
+| `app/domain/agents/` | 业务 Agent 定义与注册 |
+| `app/domain/tools/` | 领域工具与工具组合 |
+| `app/application/services/` | 用例服务，封装校验与 Agent 调用 |
+| `app/interfaces/http/` | FastAPI 路由与依赖注入 |
 | `app/handlers/` | 多步工作流、异步任务 |
-| `app/api/` | 扩展 REST 路由（挂到 `main.py`） |
 
-新增 Agent：在 `app/agents/` 增加模块，并在 `registry_setup.py` 里 `register`。
+兼容目录 `app/agents/`、`app/services/`、`app/tools/`、`app/api/` 目前仍保留为转发层，便于渐进迁移。
+
+新增 Agent：在 `app/domain/agents/` 增加模块，并在 `registry.py` 里 `register`。
 
 ### 接口里用 Agent 做意图识别
 

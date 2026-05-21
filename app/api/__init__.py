@@ -1,5 +1,5 @@
-"""Business API exports."""
+"""Compatibility exports for legacy API imports."""
 
-from app.api.router import include_business_routers, router
+from app.interfaces.http import include_business_routers, router
 
 __all__ = ["router", "include_business_routers"]

@@ -1,24 +1,5 @@
-"""Default assistant agent for the application."""
+"""Compatibility module for assistant agent."""
 
-from __future__ import annotations
+from app.domain.agents.assistant import build_assistant_agent
 
-from langweave import Agent, AgentBuilder
-from langweave.config import AgentSettings
-
-from app.agents._memory import with_conversation_memory
-from app.tools import get_default_tools
-
-
-def build_assistant_agent(settings: AgentSettings | None = None) -> Agent:
-    settings = settings or AgentSettings.from_env()
-    builder = (
-        AgentBuilder(settings)
-        .with_name("assistant")
-        .with_description("General assistant with calculator and clock tools")
-        .with_system_prompt(
-            settings.system_prompt
-            or "You are a helpful assistant. Use tools when needed."
-        )
-        .with_tools(get_default_tools())
-    )
-    return with_conversation_memory(builder, settings).build()
+__all__ = ["build_assistant_agent"]

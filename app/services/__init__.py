@@ -1,6 +1,5 @@
-"""Business services orchestrating agents and domain logic."""
+"""Compatibility exports for legacy service imports."""
 
-from app.services.chat_service import ChatService
-from app.services.intent_service import IntentService
+from app.application.services import ChatService, IntentService, SessionService
 
-__all__ = ["ChatService", "IntentService"]
+__all__ = ["ChatService", "IntentService", "SessionService"]

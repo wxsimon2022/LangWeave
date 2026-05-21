@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.agents import register_agents
-from app.api.router import include_business_routers
+from app.domain.agents import register_agents
+from app.interfaces.http import include_business_routers
 from langweave.web import create_app
 from langweave.web.swagger2 import setup_swagger2
 

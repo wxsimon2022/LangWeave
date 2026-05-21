@@ -1,5 +1,5 @@
-"""Domain-specific tools for business agents."""
+"""Compatibility exports for legacy tool imports."""
 
-from app.tools.builtin import get_default_tools
+from app.domain.tools import get_default_tools, query_order_status
 
-__all__ = ["get_default_tools"]
+__all__ = ["get_default_tools", "query_order_status"]
