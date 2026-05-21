@@ -122,6 +122,44 @@ app = create_app(on_startup=setup)
 
 当前项目若直接运行内置业务应用，入口统一在 `app/bootstrap.py`，`main.py` 仅保留 ASGI 启动引用。
 
+### 情感聊天前端（Vue 3）
+
+根目录已新增 `fe/`，是一个基于 **Vue 3 + Vite** 的单页前端，默认对接本项目后端的 `emotional` Agent：
+
+```bash
+cd fe
+cp .env.example .env
+npm install
+npm run dev
+```
+
+默认前端地址：
+
+```text
+http://127.0.0.1:5173
+```
+
+默认后端地址配置：
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+前端当前调用接口：
+
+```text
+POST /api/v1/agents/emotional/chat
+```
+
+用途：
+- 发送用户消息到情感陪伴助手
+- 自动复用后端返回的 `thread_id`，支持多轮记忆
+- 可在页面内一键开启新会话
+
+后端已默认允许本地开发跨域来源：
+- `http://127.0.0.1:5173`
+- `http://localhost:5173`
+
 ### API 文档（目录树 + Swagger 2）
 
 默认 **按 URL 目录层级** 展示接口（左树右详情），规范仍为 Swagger 2.0：

@@ -81,3 +81,7 @@ pip-delete-this-directory.txt
 # uv / poetry lock (optional; uncomment if you prefer not to commit locks)
 # uv.lock
 # poetry.lock
+
+# Frontend
+fe/node_modules/
+fe/dist/

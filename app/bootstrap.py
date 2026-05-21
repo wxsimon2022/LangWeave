@@ -12,7 +12,14 @@ from langweave.web.swagger2 import setup_swagger2
 
 def create_business_app() -> FastAPI:
     """Create the project ASGI app with framework and business routes wired."""
-    app = create_app(on_startup=register_agents, doc_mode="swagger2")
+    app = create_app(
+        on_startup=register_agents,
+        doc_mode="swagger2",
+        cors_origins=[
+            "http://127.0.0.1:5173",
+            "http://localhost:5173",
+        ],
+    )
     include_business_routers(app)
     setup_swagger2(
         app,
