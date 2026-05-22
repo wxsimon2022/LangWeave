@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.application.services.auth import AuthService
-from app.infrastructure.persistence.models import User
-from app.interfaces.http.deps import get_auth_service, get_current_user
+from app.interfaces.http.deps import AuthServiceDep, CurrentUser
 from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, UserProfile
+from app.constants import API_V1_AUTH
 from langweave.web.response import ApiResponse
 
-router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+router = APIRouter(prefix=API_V1_AUTH, tags=["auth"])
 
 
 @router.post(
@@ -23,7 +21,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 )
 def register(
     body: RegisterRequest,
-    service: Annotated[AuthService, Depends(get_auth_service)],
+    service: AuthServiceDep,
 ) -> ApiResponse[AuthTokenResponse]:
     try:
         return ApiResponse.ok(service.register(body.username, body.password))
@@ -38,7 +36,7 @@ def register(
 )
 def login(
     body: LoginRequest,
-    service: Annotated[AuthService, Depends(get_auth_service)],
+    service: AuthServiceDep,
 ) -> ApiResponse[AuthTokenResponse]:
     try:
         return ApiResponse.ok(service.login(body.username, body.password))
@@ -52,6 +50,6 @@ def login(
     summary="当前登录用户",
 )
 def me(
-    user: Annotated[User, Depends(get_current_user)],
+    user: CurrentUser,
 ) -> ApiResponse[UserProfile]:
     return ApiResponse.ok(UserProfile.model_validate(user))

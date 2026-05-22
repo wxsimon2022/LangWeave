@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from app.application.services.session import SessionService
-from app.interfaces.http.deps import get_session_service
+from app.interfaces.http.deps import SessionServiceDep
 from app.schemas.session import SessionHistoryResponse
+from app.constants import API_V1_SESSIONS
 from langweave.web.response import ApiResponse
 
-router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
+router = APIRouter(prefix=API_V1_SESSIONS, tags=["sessions"])
 
 
 @router.get(
@@ -22,7 +21,7 @@ router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
 async def get_session_history(
     agent_name: str,
     thread_id: str,
-    service: Annotated[SessionService, Depends(get_session_service)],
+    service: SessionServiceDep,
 ) -> ApiResponse[SessionHistoryResponse]:
     """返回指定 thread_id 下已记住的多轮消息。"""
     try:
@@ -40,7 +39,7 @@ async def get_session_history(
 async def clear_session(
     agent_name: str,
     thread_id: str,
-    service: Annotated[SessionService, Depends(get_session_service)],
+    service: SessionServiceDep,
 ) -> ApiResponse[dict]:
     """清空该会话的上下文，开始新对话。"""
     try:

@@ -40,6 +40,13 @@ def get_auth_service(
     return AuthService(db)
 
 
+def get_emotional_chat_service(
+    db: Annotated[Session, Depends(get_db_session)],
+    registry: Annotated[AgentRegistry, Depends(get_registry)],
+) -> EmotionalChatService:
+    return EmotionalChatService(db, registry)
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
@@ -59,8 +66,10 @@ def get_current_user(
         ) from exc
 
 
-def get_emotional_chat_service(
-    db: Annotated[Session, Depends(get_db_session)],
-    registry: Annotated[AgentRegistry, Depends(get_registry)],
-) -> EmotionalChatService:
-    return EmotionalChatService(db, registry)
+# Type aliases for cleaner dependency injection
+CurrentUser = Annotated[User, Depends(get_current_user)]
+DBSession = Annotated[Session, Depends(get_db_session)]
+IntentServiceDep = Annotated[IntentService, Depends(get_intent_service)]
+SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
+EmotionalChatServiceDep = Annotated[EmotionalChatService, Depends(get_emotional_chat_service)]
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

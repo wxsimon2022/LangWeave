@@ -11,6 +11,14 @@ from app.domain.agents.assistant import build_assistant_agent
 from app.domain.agents.emotional import build_emotional_agent
 from app.domain.agents.fallback import build_unavailable_agent
 from app.domain.agents.intent import build_intent_agent
+from app.constants import (
+    INTENT_AGENT,
+    ASSISTANT_AGENT,
+    EMOTIONAL_AGENT,
+    INTENT_DESCRIPTION,
+    ASSISTANT_DESCRIPTION,
+    EMOTIONAL_DESCRIPTION,
+)
 
 
 def _missing_model_error(settings: AgentSettings) -> str | None:
@@ -26,35 +34,25 @@ def _missing_model_error(settings: AgentSettings) -> str | None:
     return None
 
 
+def _register_fallback_agents(registry: AgentRegistry, error_message: str) -> None:
+    agents = [
+        (INTENT_AGENT, INTENT_DESCRIPTION),
+        (ASSISTANT_AGENT, ASSISTANT_DESCRIPTION),
+        (EMOTIONAL_AGENT, EMOTIONAL_DESCRIPTION),
+    ]
+    for name, description in agents:
+        registry.register(
+            build_unavailable_agent(name, description, error_message),
+            overwrite=True,
+        )
+
+
 def register_agents(registry: AgentRegistry) -> None:
     """Wire all application agents. Called on FastAPI startup."""
     settings = AgentSettings.from_env()
     error_message = _missing_model_error(settings)
     if error_message:
-        registry.register(
-            build_unavailable_agent(
-                "intent",
-                "Classifies user intent via structured output",
-                error_message,
-            ),
-            overwrite=True,
-        )
-        registry.register(
-            build_unavailable_agent(
-                "assistant",
-                "General assistant with calculator and clock tools",
-                error_message,
-            ),
-            overwrite=True,
-        )
-        registry.register(
-            build_unavailable_agent(
-                "emotional",
-                "情感陪伴与倾听，提供共情式对话支持（支持多轮记忆）",
-                error_message,
-            ),
-            overwrite=True,
-        )
+        _register_fallback_agents(registry, error_message)
         return
 
     registry.register(build_intent_agent(settings), overwrite=True)

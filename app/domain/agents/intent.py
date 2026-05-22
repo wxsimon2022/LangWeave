@@ -6,6 +6,7 @@ from langweave import Agent, AgentBuilder
 from langweave.config import AgentSettings
 
 from app.schemas.intent import UserIntent
+from app.constants import INTENT_AGENT, ASSISTANT_AGENT, EMOTIONAL_AGENT
 
 INTENT_SYSTEM_PROMPT = """你是意图识别模块。只分析用户输入，输出结构化分类结果，不要直接回答用户问题。
 
@@ -31,7 +32,7 @@ def build_intent_agent(settings: AgentSettings | None = None) -> Agent:
     settings = settings or AgentSettings.from_env()
     return (
         AgentBuilder(settings)
-        .with_name("intent")
+        .with_name(INTENT_AGENT)
         .with_description("Classifies user intent via structured output")
         .with_system_prompt(INTENT_SYSTEM_PROMPT)
         .with_response_format(UserIntent)

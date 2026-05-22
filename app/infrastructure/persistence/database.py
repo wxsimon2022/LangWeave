@@ -14,21 +14,18 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.infrastructure.persistence.models import Base
 from langweave.config import load_dotenv
+from app.constants import SQLITE_FALLBACK_URL
 
 logger = logging.getLogger(__name__)
-SQLITE_FALLBACK_URL = "sqlite:///./langweave.db"
 
 
-def _configured_database_url() -> str | None:
+def _database_url() -> str:
     load_dotenv()
     return (
         os.environ.get("LANGWEAVE_DATABASE_URL")
         or os.environ.get("DATABASE_URL")
+        or SQLITE_FALLBACK_URL
     )
-
-
-def _database_url() -> str:
-    return _configured_database_url() or SQLITE_FALLBACK_URL
 
 
 def _create_engine(url: str) -> Engine:
@@ -69,8 +66,7 @@ def init_database() -> None:
 
 def get_db_session() -> Generator[Session, None, None]:
     """FastAPI dependency for a transactional DB session."""
-    url = _database_url()
-    session = get_session_factory(url)()
+    session = get_session_factory()()
     session.execute(text("SELECT 1"))
     try:
         yield session

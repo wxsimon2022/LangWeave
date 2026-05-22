@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from app.application.services.intent import IntentService
-from app.interfaces.http.deps import get_intent_service
+from app.interfaces.http.deps import IntentServiceDep
 from app.schemas.intent import (
     IntentChatRequest,
     IntentChatResponse,
     IntentRecognizeRequest,
     IntentRecognizeResponse,
 )
+from app.constants import API_V1_INTENT
 from langweave.web.response import ApiResponse
 
-router = APIRouter(prefix="/api/v1/intent", tags=["intent"])
+router = APIRouter(prefix=API_V1_INTENT, tags=["intent"])
 
 
 @router.post(
@@ -26,7 +25,7 @@ router = APIRouter(prefix="/api/v1/intent", tags=["intent"])
 )
 async def recognize_intent(
     body: IntentRecognizeRequest,
-    service: Annotated[IntentService, Depends(get_intent_service)],
+    service: IntentServiceDep,
 ) -> ApiResponse[IntentRecognizeResponse]:
     """调用 intent Agent，返回结构化意图（intent、slots、target_agent 等）。"""
     try:
@@ -45,7 +44,7 @@ async def recognize_intent(
 )
 async def intent_chat(
     body: IntentChatRequest,
-    service: Annotated[IntentService, Depends(get_intent_service)],
+    service: IntentServiceDep,
 ) -> ApiResponse[IntentChatResponse]:
     """先识别意图，再调用 target_agent（默认 assistant）生成业务回复。"""
     try:

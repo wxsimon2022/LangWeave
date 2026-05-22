@@ -17,10 +17,12 @@ from app.schemas.emotional_chat import (
     EmotionalConversationResponse,
     EmotionalMessageItem,
 )
+from app.utils import chunk_to_text, last_ai_content
 from langweave.agent import Agent
 from langweave.web.serialize import json_dumps
 from langweave.memory import aclear_thread
 from langweave.registry import AgentRegistry
+from app.exceptions import AgentNotFoundError, ValidationError
 
 
 def _message_to_schema(message: ChatMessage) -> EmotionalMessageItem:
@@ -30,22 +32,6 @@ def _message_to_schema(message: ChatMessage) -> EmotionalMessageItem:
         content=message.content,
         created_at=message.created_at,
     )
-
-
-def _last_ai_content(messages: Sequence[BaseMessage]) -> str:
-    for msg in reversed(messages):
-        if isinstance(msg, AIMessage):
-            content = msg.content
-            if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                parts = [
-                    block.get("text", "")
-                    for block in content
-                    if isinstance(block, dict) and block.get("type") == "text"
-                ]
-                return "".join(parts)
-    return ""
 
 
 class EmotionalChatService:
@@ -69,24 +55,20 @@ class EmotionalChatService:
     async def send_message(self, user: User, message: str) -> EmotionalChatResponse:
         content = message.strip()
         if not content:
-            msg = "Message cannot be empty"
-            raise ValueError(msg)
+            raise ValidationError("Message cannot be empty")
 
         conversation = self._get_or_create_conversation(user.id)
         agent = self._get_emotional_agent()
         history = [self._to_langchain_message(item) for item in conversation.messages]
         if getattr(agent.graph, "checkpointer", None) is not None:
-            # This path uses DB history as the source of truth. Clear the in-memory
-            # checkpoint first so prior turns are not duplicated during invocation.
             await aclear_thread(agent.graph, conversation.thread_id)
         state = await agent.ainvoke(
             {"messages": [*history, HumanMessage(content=content)]},
             thread_id=conversation.thread_id,
         )
-        reply = _last_ai_content(state.get("messages", []))
+        reply = last_ai_content(state.get("messages", []))
         if not reply:
-            msg = "Agent returned an empty response"
-            raise ValueError(msg)
+            raise ValidationError("Agent returned an empty response")
 
         user_message = ChatMessage(
             conversation_id=conversation.id,
@@ -120,8 +102,7 @@ class EmotionalChatService:
     ) -> AsyncIterator[str]:
         content = message.strip()
         if not content:
-            msg = "Message cannot be empty"
-            raise ValueError(msg)
+            raise ValidationError("Message cannot be empty")
 
         conversation = self._get_or_create_conversation(user.id)
         agent = self._get_emotional_agent()
@@ -136,7 +117,7 @@ class EmotionalChatService:
                 thread_id=conversation.thread_id,
                 stream_mode="messages",
             ):
-                text = self._chunk_to_text(chunk)
+                text = chunk_to_text(chunk)
                 if not text:
                     continue
                 final_reply += text
@@ -221,8 +202,7 @@ class EmotionalChatService:
         try:
             return self._registry.get(self.AGENT_NAME)
         except KeyError as exc:
-            msg = f"Unknown agent: {self.AGENT_NAME}"
-            raise ValueError(msg) from exc
+            raise AgentNotFoundError(self.AGENT_NAME) from exc
 
     @staticmethod
     def _to_langchain_message(message: ChatMessage) -> BaseMessage:
@@ -231,22 +211,6 @@ class EmotionalChatService:
         if message.role == "system":
             return SystemMessage(content=message.content)
         return HumanMessage(content=message.content)
-
-    @staticmethod
-    def _chunk_to_text(chunk: Any) -> str:
-        payload = chunk[0] if isinstance(chunk, tuple) else chunk
-        if isinstance(payload, AIMessage):
-            content = payload.content
-            if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                parts = [
-                    block.get("text", "")
-                    for block in content
-                    if isinstance(block, dict) and block.get("type") == "text"
-                ]
-                return "".join(parts)
-        return ""
 
     @staticmethod
     def _sse_event(event: str, payload: dict[str, Any]) -> str:

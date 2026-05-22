@@ -7,9 +7,11 @@ from typing import Any
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 from app.schemas.session import MessageItem, SessionHistoryResponse
+from app.utils import extract_text_content
 from langweave.agent import Agent
 from langweave.memory import aclear_thread
 from langweave.registry import AgentRegistry
+from app.exceptions import AgentNotFoundError
 
 
 def _to_message_item(msg: BaseMessage) -> MessageItem:
@@ -21,18 +23,7 @@ def _to_message_item(msg: BaseMessage) -> MessageItem:
     elif isinstance(msg, ToolMessage):
         role = "tool"
 
-    content = msg.content
-    if isinstance(content, str):
-        text = content
-    elif isinstance(content, list):
-        text = "".join(
-            block.get("text", "")
-            for block in content
-            if isinstance(block, dict) and block.get("type") == "text"
-        )
-    else:
-        text = str(content)
-    return MessageItem(role=role, content=text)
+    return MessageItem(role=role, content=extract_text_content(msg.content))
 
 
 class SessionService:
@@ -45,8 +36,7 @@ class SessionService:
         try:
             return self._registry.get(name)
         except KeyError as exc:
-            msg = f"Unknown agent: {name}"
-            raise ValueError(msg) from exc
+            raise AgentNotFoundError(name) from exc
 
     async def get_history(
         self,

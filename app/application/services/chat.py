@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from langweave.agent import Agent
 from langweave.registry import AgentRegistry
+from app.exceptions import AgentNotFoundError, ValidationError
 
 
 class ChatService:
@@ -24,8 +25,7 @@ class ChatService:
     ) -> str:
         message = message.strip()
         if not message:
-            msg = "Message cannot be empty"
-            raise ValueError(msg)
+            raise ValidationError("Message cannot be empty")
         agent = self._get_agent(agent_name)
         return agent.chat(message, thread_id=thread_id)
 
@@ -38,8 +38,7 @@ class ChatService:
     ) -> tuple[str, str | None]:
         message = message.strip()
         if not message:
-            msg = "Message cannot be empty"
-            raise ValueError(msg)
+            raise ValidationError("Message cannot be empty")
         agent = self._get_agent(agent_name)
         return await agent.achat(message, thread_id=thread_id)
 
@@ -47,5 +46,4 @@ class ChatService:
         try:
             return self._registry.get(name)
         except KeyError as exc:
-            msg = f"Unknown agent: {name}"
-            raise ValueError(msg) from exc
+            raise AgentNotFoundError(name) from exc

@@ -7,13 +7,14 @@ from langweave.config import AgentSettings
 
 from app.domain.agents.memory import with_conversation_memory
 from app.domain.tools import get_default_tools
+from app.constants import ASSISTANT_AGENT
 
 
 def build_assistant_agent(settings: AgentSettings | None = None) -> Agent:
     settings = settings or AgentSettings.from_env()
     builder = (
         AgentBuilder(settings)
-        .with_name("assistant")
+        .with_name(ASSISTANT_AGENT)
         .with_description("General assistant with calculator and clock tools")
         .with_system_prompt(
             settings.system_prompt

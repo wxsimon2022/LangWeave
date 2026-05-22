@@ -10,13 +10,12 @@ from langweave.agent import Agent
 from langweave.registry import AgentRegistry
 
 from app.schemas.intent import IntentChatResponse, UserIntent
+from app.exceptions import AgentNotFoundError, ValidationError
+from app.constants import INTENT_AGENT, DEFAULT_TARGET_AGENT
 
 
 class IntentService:
     """Call the intent agent, parse structured output, optionally route to workers."""
-
-    INTENT_AGENT = "intent"
-    DEFAULT_TARGET = "assistant"
 
     def __init__(self, registry: AgentRegistry) -> None:
         self._registry = registry
@@ -29,8 +28,7 @@ class IntentService:
     ) -> UserIntent:
         message = message.strip()
         if not message:
-            msg = "Message cannot be empty"
-            raise ValueError(msg)
+            raise ValidationError("Message cannot be empty")
 
         agent = self._get_intent_agent()
         result = await agent.ainvoke(message, thread_id=thread_id)
@@ -47,7 +45,7 @@ class IntentService:
         if not auto_reply:
             return IntentChatResponse(intent=intent, thread_id=thread_id)
 
-        target = intent.target_agent or self.DEFAULT_TARGET
+        target = intent.target_agent or DEFAULT_TARGET_AGENT
         worker = self._get_agent(target)
         enriched = self._build_worker_message(message, intent)
         reply, _ = await worker.achat(enriched, thread_id=thread_id)
@@ -59,14 +57,13 @@ class IntentService:
         )
 
     def _get_intent_agent(self) -> Agent:
-        return self._get_agent(self.INTENT_AGENT)
+        return self._get_agent(INTENT_AGENT)
 
     def _get_agent(self, name: str) -> Agent:
         try:
             return self._registry.get(name)
         except KeyError as exc:
-            msg = f"Unknown agent: {name}"
-            raise ValueError(msg) from exc
+            raise AgentNotFoundError(name) from exc
 
     def _parse_result(self, result: dict[str, Any]) -> UserIntent:
         structured = result.get("structured_response")
@@ -75,21 +72,20 @@ class IntentService:
         if isinstance(structured, dict):
             return UserIntent.model_validate(structured)
 
-        messages = result.get("messages", [])
-        for msg in reversed(messages):
+        for msg in reversed(result.get("messages", [])):
             content = getattr(msg, "content", None)
             if not content:
                 continue
-            if isinstance(content, str):
-                parsed = self._parse_json_from_text(content)
-                if parsed is not None:
-                    return UserIntent.model_validate(parsed)
+            text = content if isinstance(content, str) else ""
+            parsed = self._parse_json_from_text(text)
+            if parsed is not None:
+                return UserIntent.model_validate(parsed)
 
         return UserIntent(
             intent="unknown",
             confidence=0.0,
             slots={},
-            target_agent=self.DEFAULT_TARGET,
+            target_agent=DEFAULT_TARGET_AGENT,
             reasoning="Failed to parse structured intent from model response",
         )
 
@@ -107,7 +103,7 @@ class IntentService:
                 data = json.loads(match.group())
                 return data if isinstance(data, dict) else None
             except json.JSONDecodeError:
-                return None
+                pass
         return None
 
     @staticmethod
