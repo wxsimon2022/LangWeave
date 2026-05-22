@@ -16,6 +16,7 @@ from app.schemas.emotional_chat import (
 )
 from app.constants import API_V1_EMOTIONAL_CHAT
 from langweave.web.response import ApiResponse
+from langweave.web.serialize import json_dumps
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=API_V1_EMOTIONAL_CHAT, tags=["emotional-chat"])
@@ -91,20 +92,29 @@ async def _sse_safe_iterate(async_gen: AsyncIterator[str]) -> AsyncIterator[str]
     that bundles exceptions into an ``ExceptionGroup`` when the client
     disconnects.  This wrapper catches everything so the ASGI layer never
     sees an unhandled generator exception.
+
+    When the inner generator fails, a JSON error event is yielded so the
+    client receives a meaningful message instead of a silent 200 OK.
     """
+    finished = False
     try:
         async for item in async_gen:
+            finished = True
             try:
                 yield item
             except GeneratorExit:
+                # Client disconnected — nothing more to send.
                 return
+        # Normal exhaustion — nothing more to yield.
     except GeneratorExit:
         return
     except BaseException:
         logger.exception("SSE stream iterator error")
-    finally:
-        # Ensure the generator is closed to release resources.
-        await async_gen.aclose()
+        if not finished:
+            error_sse = (
+                f"data: {json_dumps({'event': 'error', 'payload': {'message': 'Internal stream error'}})}\n\n"
+            )
+            yield error_sse
 
 
 @router.delete(

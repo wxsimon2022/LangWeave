@@ -213,6 +213,20 @@ function handleLogout() {
   statusTone.value = "pending";
 }
 
+let _scrollRaf = null;
+function scrollToBottom() {
+  if (_scrollRaf) {
+    return;
+  }
+  _scrollRaf = requestAnimationFrame(() => {
+    _scrollRaf = null;
+    const el = messageListRef.value;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  });
+}
+
 // --- 发送消息 ---
 async function handleSend() {
   const content = input.value.trim();
@@ -230,6 +244,7 @@ async function handleSend() {
   });
   input.value = "";
   sending.value = true;
+  scrollToBottom();
 
   try {
     await streamEmotionalMessage(content, {
@@ -239,6 +254,7 @@ async function handleSend() {
           target.text += payload?.content || "";
           target.meta = "流式回复中...";
         }
+        scrollToBottom();
       },
       onDone(payload) {
         threadId.value = payload?.thread_id || "";
@@ -250,6 +266,7 @@ async function handleSend() {
             ? new Date(payload.assistant_message.created_at).toLocaleString()
             : "已完成";
         }
+        scrollToBottom();
       },
       onError(payload) {
         const target = messages.value.find((message) => message.id === pendingAssistantId);
@@ -257,6 +274,7 @@ async function handleSend() {
           target.text = payload?.message || "流式输出失败。";
           target.meta = "请求失败";
         }
+        scrollToBottom();
       },
     });
     // 新消息已持久化到后端，下次加载历史时就能看到
@@ -273,6 +291,7 @@ async function handleSend() {
     statusTone.value = "error";
   } finally {
     sending.value = false;
+    scrollToBottom();
   }
 }
 
@@ -322,860 +341,400 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page-shell">
-    <div class="background-orb orb-left"></div>
-    <div class="background-orb orb-right"></div>
+  <div class="app">
+    <!-- Auth -->
+    <main v-if="!authenticated" class="auth">
+      <div class="auth-card">
+        <header class="auth-head">
+          <span class="auth-badge">Emotion Support</span>
+          <h1>登录 / 注册</h1>
+          <p class="auth-desc">登录恢复你的历史对话，新用户自动注册</p>
+        </header>
 
-    <main v-if="!authenticated" class="auth-screen">
-      <section class="auth-hero">
-        <p class="eyebrow">Emotion Support Console</p>
-        <h1>把登录和倾诉分开。</h1>
-        <p class="hero-copy">
-          先完成登录，再进入专注聊天的空间。这样页面更干净，状态也更清楚。
-        </p>
-
-        <div class="status-row">
-          <span class="status-dot" :data-tone="statusTone"></span>
-          <span class="status-text">{{ status }}</span>
-        </div>
-      </section>
-
-      <section class="auth-panel">
-        <div class="auth-panel-header">
-          <p class="auth-kicker">{{ authMode === "login" ? "Sign In" : "Create Account" }}</p>
-          <h2>{{ authMode === "login" ? "登录继续聊天" : "注册新账号" }}</h2>
-          <p class="auth-description">
-            登录后会自动恢复你自己的历史消息，并继续上一次情感对话。
-          </p>
+        <div class="status-badge">
+          <span class="dot" :data-tone="statusTone"></span>
+          <span>{{ status }}</span>
         </div>
 
         <form class="auth-form" @submit.prevent="handleAuthSubmit">
           <input
             v-model="username"
-            class="auth-input"
             type="text"
             autocomplete="username"
             placeholder="用户名"
+            class="input"
           />
           <input
             v-model="password"
-            class="auth-input"
             type="password"
             autocomplete="current-password"
-            placeholder="密码，至少 6 位"
+            placeholder="密码（至少 6 位）"
+            class="input"
           />
-          <button class="send-button block-button" type="submit" :disabled="authLoading">
+          <button class="btn btn-primary" type="submit" :disabled="authLoading">
             {{ authButtonText }}
           </button>
         </form>
 
-        <button
-          class="switch-auth"
-          type="button"
-          @click="authMode = authMode === 'login' ? 'register' : 'login'"
-        >
+        <button class="link-btn" type="button" @click="authMode = authMode === 'login' ? 'register' : 'login'">
           {{ authMode === "login" ? "没有账号？去注册" : "已有账号？去登录" }}
         </button>
-      </section>
+      </div>
     </main>
 
-    <main v-else class="chat-screen">
-      <section class="hero-panel">
-        <p class="eyebrow">Emotion Support Console</p>
-        <h1>情感聊天助手</h1>
-        <p class="hero-copy">
-          这是一个偏陪伴型的对话界面。它不会催你给答案，也不会急着下判断，只负责先把你的话接住。
-        </p>
-
-        <div class="status-row">
-          <span class="status-dot" :data-tone="statusTone"></span>
-          <span class="status-text">{{ status }}</span>
+    <!-- Chat -->
+    <main v-else class="chat">
+      <!-- Header -->
+      <header class="chat-head">
+        <div class="chat-head-left">
+          <span class="dot" :data-tone="statusTone"></span>
+          <span class="chat-name">{{ currentUser?.username }}</span>
         </div>
-
-        <div class="thread-card">
-          <span class="thread-label">当前会话</span>
-          <strong>{{ threadId || "未建立" }}</strong>
+        <div class="chat-head-right">
+          <button class="btn ghost" type="button" @click="handleReset">新对话</button>
+          <button class="btn ghost" type="button" @click="handleLogout">退出</button>
         </div>
+      </header>
 
-        <div class="account-card">
-          <span class="thread-label">当前用户</span>
-          <strong>{{ currentUser?.username }}</strong>
-          <button class="ghost-button block-button" type="button" @click="handleLogout">
-            退出登录
-          </button>
-        </div>
-      </section>
+      <!-- Messages -->
+      <div ref="messageListRef" class="msgs" @scroll="onMessageListScroll">
+        <div v-if="loadingOlder" class="load-hint">加载中...</div>
+        <div v-else-if="hasMoreMessages" class="load-hint">向上滚动加载更多</div>
 
-      <section class="chat-panel">
-        <header class="chat-header">
-          <div>
-            <p class="chat-title">对话窗口</p>
-            <p class="chat-subtitle">
-              登录后会自动保存聊天记录。滚动到顶部可加载更多历史消息。
-            </p>
-          </div>
-          <button class="ghost-button" type="button" @click="handleReset">新对话</button>
-        </header>
-
-        <div
-          ref="messageListRef"
-          class="message-list"
-          @scroll="onMessageListScroll"
+        <article
+          v-for="m in messages"
+          :key="m.id"
+          class="msg"
+          :class="m.role"
         >
-          <div v-if="loadingOlder" class="load-more-hint">加载更早的消息...</div>
-          <div v-else-if="hasMoreMessages" class="load-more-hint">
-            向上滚动加载更多历史消息
+          <div class="msg-bubble">
+            <p>{{ m.text }}</p>
+            <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
           </div>
+        </article>
+      </div>
 
-          <article
-            v-for="message in messages"
-            :key="message.id"
-            class="message-item"
-            :data-role="message.role"
-          >
-            <div class="message-badge">
-              {{ message.role === "assistant" ? "陪伴助手" : "你" }}
-            </div>
-            <div class="message-bubble">
-              <p>{{ message.text }}</p>
-              <span v-if="message.meta" class="message-meta">{{ message.meta }}</span>
-            </div>
-          </article>
-        </div>
-
-        <form class="composer" @submit.prevent="handleSend">
-          <label class="composer-label" for="message">
-            想说什么就写下来，不需要组织得很完整。
-          </label>
-          <textarea
-            id="message"
-            v-model="input"
-            class="composer-input"
-            :rows="isMobile ? 2 : 4"
-            placeholder="比如：最近总觉得很焦虑，晚上也睡不好。"
-            @keydown="handleComposerKeydown"
-            @input="autoResizeTextarea"
-          ></textarea>
-
-          <div class="composer-actions">
-            <p class="composer-tip">
-              前端调用接口：`/api/v1/auth/*`、`/api/v1/emotional-chat/*`
-            </p>
-            <button class="send-button" type="submit" :disabled="!canSend">
-              {{ sending ? "发送中..." : "发送" }}
-            </button>
-          </div>
-        </form>
-      </section>
+      <!-- Composer -->
+      <form class="composer" @submit.prevent="handleSend">
+        <textarea
+          id="msg-input"
+          v-model="input"
+          class="input ta"
+          :rows="isMobile ? 2 : 3"
+          placeholder="说说你的感受……"
+          @keydown="handleComposerKeydown"
+          @input="autoResizeTextarea"
+        ></textarea>
+        <button class="btn btn-primary send" type="submit" :disabled="!canSend">
+          {{ sending ? "..." : "发送" }}
+        </button>
+      </form>
     </main>
   </div>
 </template>
 
 <style>
-/* ===== Reset & Base ===== */
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ===== Reset ===== */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-  --bg-start: #fef3ed;
-  --bg-end: #f9e8e0;
-  --text-primary: #2c1810;
-  --text-secondary: #7a5a4a;
-  --text-muted: #a08070;
+  --bg: #f0ebe5;
+  --fg: #2c1810;
+  --fg2: #7a5a4a;
+  --fg3: #a08070;
   --accent: #d9735a;
   --accent-hover: #c05e46;
-  --accent-soft: #f5ddd5;
-  --surface: #ffffffdd;
-  --surface-hover: #ffffff;
-  --border: #e6d3c8;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --surface: #ffffff;
+  --border: #e0d3c8;
+  --radius: 10px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-}
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 
 body {
-  font-family: var(--font-sans);
-  background: linear-gradient(145deg, var(--bg-start), var(--bg-end));
-  color: var(--text-primary);
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
   min-height: 100dvh;
 }
 
-/* ===== Layout ===== */
-.page-shell {
+/* ===== Base ===== */
+.app {
   display: flex;
-  min-height: 100dvh;
-  position: relative;
-  overflow: hidden;
-}
-
-.background-orb {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.35;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.orb-left {
-  width: 500px;
-  height: 500px;
-  background: #e8b4a0;
-  top: -120px;
-  left: -150px;
-}
-
-.orb-right {
-  width: 400px;
-  height: 400px;
-  background: #d9b8a8;
-  bottom: -100px;
-  right: -100px;
-}
-
-/* ===== Auth Screen ===== */
-.auth-screen {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: center;
-  gap: 3rem;
   width: 100%;
-  padding: 2rem;
-  z-index: 1;
+  min-height: 100dvh;
 }
 
-.auth-hero {
-  flex: 0 1 380px;
+main {
+  width: 100%;
 }
 
-.eyebrow {
-  font-size: 0.75rem;
+/* ===== Shared ===== */
+.input {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.85rem;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--fg3); }
+
+.btn {
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.6rem 1.2rem;
+  font-family: var(--font);
+  font-size: 0.88rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+.ghost {
+  background: transparent;
+  color: var(--fg2);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 6px;
+}
+.ghost:hover { background: rgba(0,0,0,0.05); color: var(--fg); }
+
+.link-btn {
+  background: none;
+  border: none;
+  font-size: 0.82rem;
   color: var(--accent);
-  margin-bottom: 0.75rem;
+  cursor: pointer;
 }
+.link-btn:hover { text-decoration: underline; }
 
-.auth-hero h1 {
-  font-size: 2rem;
-  font-weight: 650;
-  line-height: 1.25;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
-.hero-copy {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-  max-width: 36ch;
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.status-dot {
+.dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   background: #bbb;
   transition: background 0.3s;
 }
+.dot[data-tone="ok"] { background: #44b37f; }
+.dot[data-tone="error"] { background: #e06050; }
+.dot[data-tone="pending"] { background: #d9a040; }
 
-.status-dot[data-tone="ok"] {
-  background: #44b37f;
+/* ===== Auth ===== */
+.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 1.5rem;
 }
 
-.status-dot[data-tone="error"] {
-  background: #e06050;
-}
-
-.status-dot[data-tone="pending"] {
-  background: #d9a040;
-}
-
-.status-text {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-/* ===== Auth Panel ===== */
-.auth-panel {
-  flex: 0 1 380px;
+.auth-card {
+  width: 100%;
+  max-width: 380px;
   background: var(--surface);
-  backdrop-filter: blur(16px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 2.25rem;
-  box-shadow: var(--shadow-md);
+  border-radius: 14px;
+  padding: 2rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
 }
 
-.auth-panel-header {
-  margin-bottom: 1.75rem;
-}
+.auth-head { margin-bottom: 1.25rem; }
 
-.auth-kicker {
-  font-size: 0.7rem;
+.auth-badge {
+  display: inline-block;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--accent);
-  margin-bottom: 0.4rem;
-}
-
-.auth-panel-header h2 {
-  font-size: 1.3rem;
-  font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
-.auth-description {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+.auth-head h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.auth-desc {
+  font-size: 0.82rem;
+  color: var(--fg2);
   line-height: 1.5;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--fg2);
+  margin-bottom: 1.25rem;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.auth-input {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  background: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-}
-
-.auth-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.switch-auth {
-  background: none;
-  border: none;
-  font-size: 0.85rem;
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.switch-auth:hover {
-  color: var(--accent-hover);
-}
-
-/* ===== Chat Screen ===== */
-.chat-screen {
-  display: flex;
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem;
-  z-index: 1;
-}
-
-/* ===== Hero Panel (left sidebar) ===== */
-.hero-panel {
-  flex: 0 0 280px;
-  position: sticky;
-  top: 1.5rem;
-  align-self: start;
-}
-
-.hero-panel h1 {
-  font-size: 1.4rem;
-  font-weight: 650;
+  gap: 0.65rem;
   margin-bottom: 0.75rem;
 }
 
-.hero-panel .hero-copy {
-  font-size: 0.85rem;
-  margin-bottom: 1.25rem;
+/* ===== Chat ===== */
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 680px;
+  margin: 0 auto;
 }
 
-/* ===== Card ===== */
-.thread-card,
-.account-card {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  margin-top: 0.75rem;
-  border: 1px solid var(--border);
+/* --- Header --- */
+.chat-head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-}
-
-.thread-label {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.thread-card strong,
-.account-card strong {
-  font-weight: 600;
-  font-size: 0.85rem;
-  word-break: break-all;
-  max-width: 100%;
-}
-
-/* ===== Chat Panel (right column) ===== */
-.chat-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100dvh - 3rem);
-  max-width: 700px;
-}
-
-.chat-header {
-  display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
+  flex-shrink: 0;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.chat-title {
-  font-weight: 650;
-  font-size: 1rem;
+.chat-head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.chat-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 0.2rem;
+.chat-name {
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
-/* ===== Message List ===== */
-.message-list {
+.chat-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* --- Messages --- */
+.msgs {
   flex: 1;
   overflow-y: auto;
-  max-height: 60vh;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.5rem 0.25rem 0.5rem 0;
+  gap: 0.3rem;
+  padding: 0.75rem;
   scroll-behavior: smooth;
-  margin-bottom: 1rem;
 }
 
-.load-more-hint {
+.load-hint {
   text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.7rem;
+  color: var(--fg3);
   padding: 0.5rem 0;
   user-select: none;
 }
 
-.message-item {
+.msg {
   display: flex;
   flex-direction: column;
-  max-width: 85%;
+  max-width: 80%;
 }
 
-.message-item[data-role="user"] {
+.msg.user {
   align-self: flex-end;
   align-items: flex-end;
 }
 
-.message-item[data-role="assistant"] {
+.msg.assistant {
   align-self: flex-start;
   align-items: flex-start;
 }
 
-.message-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.25rem;
-  padding: 0 0.25rem;
+.msg-bubble {
+  padding: 0.55rem 0.9rem;
+  border-radius: 1rem;
+  line-height: 1.55;
+  font-size: 0.9rem;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
-.message-bubble {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  box-shadow: var(--shadow-sm);
-  line-height: 1.6;
-  font-size: 0.92rem;
-}
-
-.message-item[data-role="user"] .message-bubble {
+.msg.user .msg-bubble {
   background: var(--accent);
-  border-color: var(--accent);
   color: #fff;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 0.25rem;
 }
 
-.message-item[data-role="assistant"] .message-bubble {
-  border-bottom-left-radius: 4px;
+.msg.assistant .msg-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-bottom-left-radius: 0.25rem;
 }
 
-.message-meta {
+.msg-meta {
   display: block;
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
+  font-size: 0.6rem;
+  color: var(--fg3);
+  margin-top: 0.2rem;
 }
 
-.message-item[data-role="user"] .message-meta {
-  color: rgba(255, 255, 255, 0.7);
-}
+.msg.user .msg-meta { color: rgba(255,255,255,0.5); }
 
-/* ===== Composer ===== */
+/* --- Composer --- */
 .composer {
-  background: var(--surface);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-md);
-}
-
-.composer-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-}
-
-.composer-input {
-  width: 100%;
-  border: none;
-  resize: none;
-  font-family: var(--font-sans);
-  font-size: 0.92rem;
-  line-height: 1.6;
-  background: transparent;
-  outline: none;
-  color: var(--text-primary);
-}
-
-.composer-input::placeholder {
-  color: var(--text-muted);
-}
-
-.composer-actions {
+  flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 0.75rem;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.7rem 0.75rem;
+  padding-bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
 }
 
-.composer-tip {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
-/* ===== Buttons ===== */
-.send-button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.6rem 1.5rem;
+.composer .ta {
+  flex: 1;
+  border-radius: 1.25rem;
+  resize: none;
+  padding: 0.5rem 0.85rem;
   font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  line-height: 1.5;
+  max-height: 120px;
 }
 
-.send-button:hover:not(:disabled) {
-  background: var(--accent-hover);
+.composer .send {
+  flex-shrink: 0;
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.82rem;
 }
 
-.send-button:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.send-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.block-button {
-  width: 100%;
-  text-align: center;
-}
-
-.ghost-button {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.45rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.ghost-button:hover {
-  background: var(--accent-soft);
-}
-
-/* ===== Responsive: Tablet ===== */
-@media (max-width: 960px) {
-  .chat-screen {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .hero-panel {
-    flex: none;
-    position: static;
-  }
-
-  .chat-panel {
-    min-height: auto;
-  }
-}
-
-/* ===== Responsive: Mobile ===== */
+/* ===== Mobile ===== */
 @media (max-width: 640px) {
-  /* ---------- Base ---------- */
-  html {
-    font-size: 15px;
-  }
-
-  .page-shell {
-    min-height: 100dvh;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  /* ---------- Auth Screen ---------- */
-  .auth-screen {
-    flex-direction: column;
-    padding: 0;
-    gap: 0;
-  }
-
-  .auth-hero {
-    flex: none;
-    padding: 2rem 1.25rem 1rem;
-    width: 100%;
-  }
-
-  .auth-hero h1 {
-    font-size: 1.4rem;
-  }
-
-  .auth-panel {
-    flex: none;
-    width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: 1.5rem 1.25rem;
-    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* ---------- Chat Screen ---------- */
-  .chat-screen {
-    flex-direction: column;
-    padding: 0;
-    gap: 0;
-  }
-
-  /* Collapsible status bar instead of sidebar */
-  .hero-panel {
-    flex: none;
-    position: static;
-    padding: 0.75rem 1rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--surface);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .hero-panel .eyebrow {
-    display: none;
-  }
-
-  .hero-panel h1 {
-    font-size: 0.95rem;
-    margin-bottom: 0;
-    margin-right: auto;
-  }
-
-  .hero-panel .hero-copy {
-    display: none;
-  }
-
-  .hero-panel .status-row {
-    order: 10;
-    width: 100%;
-  }
-
-  .hero-panel .status-text {
-    font-size: 0.72rem;
-  }
-
-  .thread-card,
-  .account-card {
-    margin-top: 0;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.72rem;
-    width: auto;
-  }
-
-  .account-card {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .account-card .ghost-button {
-    padding: 0.2rem 0.6rem;
-    font-size: 0.7rem;
-  }
-
-  /* ---------- Chat Panel ---------- */
-  .chat-panel {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    flex: 1;
-    padding: 0.75rem 0.75rem 0;
-    overflow: hidden;
-  }
-
-  .chat-header {
-    margin-bottom: 0.5rem;
-  }
-
-  .chat-title {
-    font-size: 0.85rem;
-  }
-
-  .chat-subtitle {
-    display: none;
-  }
-
-  .chat-header .ghost-button {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  /* ---------- Message List ---------- */
-  .message-list {
-    flex: 1;
-    max-height: none;
-    min-height: 0;
-    padding: 0.25rem 0;
-    margin-bottom: 0.5rem;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .message-item {
-    max-width: 92%;
-  }
-
-  .message-bubble {
-    padding: 0.6rem 0.85rem;
-    font-size: 0.88rem;
-  }
-
-  .message-meta {
-    font-size: 0.62rem;
-  }
-
-  /* ---------- Composer ---------- */
-  .composer {
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    padding: 0.75rem 0.85rem;
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-    margin: 0 -0.75rem;
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-  }
-
-  .composer-label {
-    font-size: 0.7rem;
-    margin-bottom: 0.35rem;
-  }
-
-  .composer-input {
-    font-size: 0.88rem;
-    min-height: 2.5rem;
-  }
-
-  .composer-actions {
-    margin-top: 0.5rem;
-  }
-
-  .composer-tip {
-    display: none;
-  }
-
-  .send-button {
-    padding: 0.55rem 1.25rem;
-    font-size: 0.85rem;
-  }
+  html { font-size: 15px; }
+  .chat { max-width: 100%; }
+  .msg { max-width: 88%; }
+  .msgs { padding: 0.6rem; }
+  .composer { padding: 0.6rem; }
 }
 
-/* ===== Touch-safe tweaks for very small screens ===== */
 @media (max-width: 400px) {
-  .hero-panel h1 {
-    font-size: 0.85rem;
-  }
-
-  .thread-card strong,
-  .account-card strong {
-    font-size: 0.72rem;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .message-item {
-    max-width: 98%;
-  }
-
-  .message-bubble {
-    padding: 0.5rem 0.7rem;
-    font-size: 0.85rem;
-  }
+  .msg { max-width: 95%; }
 }
 </style>

@@ -151,11 +151,11 @@ class EmotionalChatService:
                 final_reply += text
                 yield self._sse_event("chunk", {"content": text})
         except GeneratorExit:
-            # Client disconnected — stop without persisting
             return
-        except BaseException:
+        except Exception:
             # Any other error: log, skip DB persistence, stop
             logger.exception("Emotional chat stream error")
+            yield self._sse_event("error", {"message": "Stream error, please try again"})
             return
 
         if not final_reply:

@@ -9,6 +9,9 @@ set -euo pipefail
 # - install/update dependencies
 # - restart uvicorn
 # - validate and reload nginx
+#
+# Production env file: .env.prod (root of project)
+# Local dev env file: .env (NOT included in release)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUILD_DIR="$ROOT_DIR/script/deploy/build"
@@ -41,8 +44,13 @@ rsync -a \
   --exclude "fe/node_modules" \
   --exclude "fe/dist" \
   --exclude "script/deploy/build" \
+  --exclude ".env" \
+  --exclude ".env.prod" \
   app langweave tests main.py pyproject.toml requirements.txt README.md .env.example \
   "$RELEASE_DIR/"
+# Include .env.prod as the production env template (rsync excludes it above)
+mkdir -p "$RELEASE_DIR/config"
+cp "$ROOT_DIR/.env.prod" "$RELEASE_DIR/config/.env.prod"
 rsync -a "$FRONTEND_DIR/dist/" "$RELEASE_DIR/frontend/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn.key "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.pem "$RELEASE_DIR/ssl/"
@@ -67,8 +75,18 @@ ssh "$REMOTE_HOST" "
 set -euo pipefail
 
 if [[ ! -f '$REMOTE_ENV_FILE' ]]; then
-  cp '$REMOTE_CURRENT_DIR/.env.example' '$REMOTE_ENV_FILE'
-  echo 'Created $REMOTE_ENV_FILE from .env.example. Edit it before first real use if needed.'
+  if [[ -f '$REMOTE_CURRENT_DIR/config/.env.prod' ]]; then
+    cp '$REMOTE_CURRENT_DIR/config/.env.prod' '$REMOTE_ENV_FILE'
+    echo 'Created $REMOTE_ENV_FILE from config/.env.prod.'
+  else
+    cp '$REMOTE_CURRENT_DIR/.env.example' '$REMOTE_ENV_FILE'
+    echo 'Created $REMOTE_ENV_FILE from .env.example (config/.env.prod not found).'
+  fi
+fi
+
+if [[ -f '$REMOTE_CURRENT_DIR/config/.env.prod' ]]; then
+  cp '$REMOTE_CURRENT_DIR/config/.env.prod' '$REMOTE_SHARED_DIR/.env.prod'
+  echo 'Synced .env.prod to shared for reference.'
 fi
 
 cd '$REMOTE_CURRENT_DIR'
@@ -126,7 +144,10 @@ Current directory:
   $REMOTE_CURRENT_DIR
 
 Shared env file:
-  $REMOTE_ENV_FILE
+  $REMOTE_ENV_FILE (from config/.env.prod on first deploy)
+
+Shared .env.prod (reference):
+  $REMOTE_SHARED_DIR/.env.prod
 
 Shared venv:
   $REMOTE_VENV_DIR
