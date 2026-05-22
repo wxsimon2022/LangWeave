@@ -32,6 +32,11 @@ def _create_engine(url: str) -> Engine:
     kwargs: dict[str, object] = {"pool_pre_ping": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
+    elif url.startswith("mysql"):
+        # MySQL connection pooling with reconnection
+        kwargs["pool_size"] = 5
+        kwargs["max_overflow"] = 10
+        kwargs["pool_recycle"] = 3600  # Recycle connections after 1 hour
     return create_engine(url, **kwargs)
 
 
@@ -62,6 +67,8 @@ def init_database() -> None:
             "LANGWEAVE_DATABASE_URL is not set; using local SQLite at %s",
             SQLITE_FALLBACK_URL,
         )
+    else:
+        logger.info("Database connected: %s", url.partition("://")[0] + "://***")
 
 
 def get_db_session() -> Generator[Session, None, None]:

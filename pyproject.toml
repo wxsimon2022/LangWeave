@@ -14,6 +14,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "pymysql>=1.1",
     "python-jose>=3.3",
+    "langgraph-checkpoint-mysql>=3.0",
 ]
 
 [project.optional-dependencies]

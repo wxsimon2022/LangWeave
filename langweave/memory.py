@@ -1,7 +1,13 @@
-"""Multi-turn conversation memory via LangGraph checkpointer."""
+"""Multi-turn conversation memory via LangGraph checkpointer.
+
+Supports both in-memory (default) and MySQL-backed persistence.
+When ``LANGWEAVE_DATABASE_URL`` (or ``DATABASE_URL``) starts with ``mysql``
+the checkpointer automatically uses PyMySQLSaver.
+"""
 
 from __future__ import annotations
 
+import os
 import uuid
 from functools import lru_cache
 from typing import Any
@@ -11,11 +17,61 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
+from langweave.config import load_dotenv
+
+
+def _is_mysql_url(url: str) -> bool:
+    return url.startswith("mysql") or url.startswith("mysql+pymysql:")
+
 
 @lru_cache
 def get_checkpointer() -> BaseCheckpointSaver:
-    """Shared in-memory checkpointer for all conversational agents."""
+    """Return a shared checkpointer backed by in-memory or MySQL storage.
+
+    When ``LANGWEAVE_DATABASE_URL`` (or ``DATABASE_URL``) starts with
+    ``mysql`` or ``mysql+pymysql:`` the returned checkpointer persists
+    state in MySQL via pymysql. Otherwise a plain ``MemorySaver`` is used.
+    """
+    load_dotenv()
+    url = (
+        os.environ.get("LANGWEAVE_DATABASE_URL")
+        or os.environ.get("DATABASE_URL")
+        or ""
+    )
+    if _is_mysql_url(url):
+        return _create_mysql_checkpointer(url)
     return MemorySaver()
+
+
+def _normalize_mysql_url(raw_url: str) -> str:
+    """Convert a SQLAlchemy-style URL to the format expected by PyMySQLSaver."""
+    # SQLAlchemy: mysql+pymysql://user:pass@host:port/db
+    # pymysql:    mysql://user:pass@host:port/db
+    return raw_url.replace("mysql+pymysql:", "mysql:", 1)
+
+
+def _create_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
+    """Build a PyMySQLSaver from a MySQL connection string and run setup."""
+    try:
+        import pymysql
+        from langgraph.checkpoint.mysql.pymysql import PyMySQLSaver as _PyMySQLSaver
+    except ImportError as exc:
+        msg = (
+            "MySQL checkpointer requires langgraph-checkpoint-mysql and pymysql. "
+            "Install them with: pip install langgraph-checkpoint-mysql pymysql"
+        )
+        raise ImportError(msg) from exc
+
+    PyMySQLSaver = _PyMySQLSaver
+
+    conn_url = _normalize_mysql_url(url)
+    conn = pymysql.connect(
+        **PyMySQLSaver.parse_conn_string(conn_url),
+        autocommit=True,
+    )
+    checkpointer = PyMySQLSaver(conn)
+    checkpointer.setup()
+    return checkpointer
 
 
 def resolve_thread_id(thread_id: str | None) -> str:
