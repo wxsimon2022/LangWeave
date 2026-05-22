@@ -11,17 +11,21 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+import warnings
 from functools import lru_cache
 from typing import Any
 
 from langchain_core.messages import BaseMessage
-
-logger = logging.getLogger(__name__)
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from langweave.config import load_dotenv
+
+logger = logging.getLogger(__name__)
+
+_CHECKPOINT_COLLATION = "utf8mb4_general_ci"
+_CHECKPOINT_DATA_TABLES = ("checkpoints", "checkpoint_blobs", "checkpoint_writes")
 
 
 def _is_mysql_url(url: str) -> bool:
@@ -92,6 +96,12 @@ class _LazyAsyncCheckpointer(BaseCheckpointSaver):
     async def alist(self, config: dict[str, Any], *, filter: Any = None, before: Any = None, limit: Any = None) -> Any:
         return await (await self._ensure()).alist(config, filter=filter, before=before, limit=limit)
 
+    async def adelete_thread(self, thread_id: str) -> None:
+        real = await self._ensure()
+        delete = getattr(real, "adelete_thread", None)
+        if callable(delete):
+            await delete(thread_id)
+
     def get_tuple(self, config: dict[str, Any]) -> Any:
         raise NotImplementedError("_LazyAsyncCheckpointer does not support sync get_tuple; use aget_tuple")
 
@@ -103,6 +113,19 @@ class _LazyAsyncCheckpointer(BaseCheckpointSaver):
 
     def list(self, config: dict[str, Any], *, filter: Any = None, before: Any = None, limit: Any = None) -> Any:
         raise NotImplementedError("_LazyAsyncCheckpointer does not support sync list; use alist")
+
+
+async def _apply_session_collation(cur: Any) -> None:
+    await cur.execute(f"SET NAMES utf8mb4 COLLATE {_CHECKPOINT_COLLATION}")
+    await cur.execute(f"SET collation_connection = {_CHECKPOINT_COLLATION}")
+
+
+async def _normalize_checkpoint_table_collations(cur: Any) -> None:
+    for tbl in _CHECKPOINT_DATA_TABLES:
+        await cur.execute(
+            f"ALTER TABLE {tbl} CONVERT TO CHARACTER SET utf8mb4 "
+            f"COLLATE {_CHECKPOINT_COLLATION}"
+        )
 
 
 async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
@@ -120,36 +143,32 @@ async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
 
     AIOMySQLSaver = _AIOMySQLSaver
     conn_url = _normalize_mysql_url(url)
+    init_command = (
+        f"SET NAMES utf8mb4 COLLATE {_CHECKPOINT_COLLATION}; "
+        f"SET collation_connection = {_CHECKPOINT_COLLATION}"
+    )
 
     conn = await aiomysql.connect(
         **AIOMySQLSaver.parse_conn_string(conn_url),
         autocommit=True,
+        init_command=init_command,
     )
 
-    # Match the session collation to the existing checkpoints table (if any)
-    # so that WHERE clause comparisons don't fail with "Illegal mix of
-    # collations".  If the table doesn't exist yet, fall back to the
-    # database default, then to utf8mb4_0900_ai_ci (MySQL 8 default).
     async with conn.cursor(aiomysql.DictCursor) as cur:
-        await cur.execute(
-            "SELECT COALESCE("
-            "(SELECT TABLE_COLLATION FROM information_schema.TABLES "
-            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'checkpoints'), "
-            "(SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA "
-            "WHERE SCHEMA_NAME = DATABASE()), "
-            "'utf8mb4_0900_ai_ci') AS collation"
-        )
-        row = await cur.fetchone()
-        collation = row["collation"] if row else "utf8mb4_0900_ai_ci"
-        await cur.execute(f"SET NAMES utf8mb4 COLLATE {collation}")
-        await cur.execute(f"SET collation_connection = {collation}")
+        await _apply_session_collation(cur)
 
     saver = AIOMySQLSaver(conn=conn)
-    # Suppress the benign "Table already exists" warning on setup.
-    import warnings
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=Warning)
         await saver.setup()
+
+    async with conn.cursor(aiomysql.DictCursor) as cur:
+        await _apply_session_collation(cur)
+        try:
+            await _normalize_checkpoint_table_collations(cur)
+        except Exception as exc:
+            logger.warning("Could not normalize checkpoint table collations: %s", exc)
+
     return saver
 
 
@@ -187,6 +206,12 @@ async def aclear_thread(
     graph: CompiledStateGraph[Any, Any, Any, Any],
     thread_id: str,
 ) -> None:
+    checkpointer = getattr(graph, "checkpointer", None)
+    delete = getattr(checkpointer, "adelete_thread", None)
+    if callable(delete):
+        await delete(thread_id)
+        return
+
     await graph.aupdate_state(
         thread_config(thread_id),
         {"messages": []},
