@@ -122,13 +122,46 @@ app = create_app(on_startup=setup)
 
 当前项目若直接运行内置业务应用，入口统一在 `app/bootstrap.py`，`main.py` 仅保留 ASGI 启动引用。
 
+### MySQL + JWT 登录 + 聊天记录持久化
+
+项目已接入数据库持久化与 JWT 鉴权，默认业务前端会使用这一套接口：
+
+```env
+LANGWEAVE_DATABASE_URL=mysql+pymysql://root:password@127.0.0.1:3306/langweave
+LANGWEAVE_JWT_SECRET=change-this-in-production
+LANGWEAVE_JWT_EXPIRE_MINUTES=10080
+```
+
+说明：
+- 启动时会自动建表
+- 如果未配置 `LANGWEAVE_DATABASE_URL`，开发环境会退回到本地 `sqlite:///./langweave.db`
+- 情感聊天记录按“用户维度”持久化保存
+- 用户重新打开页面并登录后，会自动恢复历史记录
+
+新增接口：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/auth/register` | 注册并返回 JWT |
+| POST | `/api/v1/auth/login` | 登录并返回 JWT |
+| GET | `/api/v1/auth/me` | 获取当前用户 |
+| GET | `/api/v1/emotional-chat/history` | 获取当前用户的情感聊天历史 |
+| POST | `/api/v1/emotional-chat/messages` | 发送消息并保存用户/助手消息 |
+| DELETE | `/api/v1/emotional-chat/history` | 清空当前用户历史并开启新会话 |
+
 ### 情感聊天前端（Vue 3）
 
-根目录已新增 `fe/`，是一个基于 **Vue 3 + Vite** 的单页前端，默认对接本项目后端的 `emotional` Agent：
+根目录已新增 `fe/`，是一个基于 **Vue 3 + Vite** 的单页前端，现已支持：
+
+- 用户注册 / 登录
+- JWT 本地持久化
+- 页面刷新后自动恢复登录态
+- 自动拉取历史聊天记录
+- 发送新消息时落库保存
+- 重新打开页面后继续上次对话
 
 ```bash
 cd fe
-cp .env.example .env
 npm install
 npm run dev
 ```
@@ -142,19 +175,22 @@ http://127.0.0.1:5173
 默认后端地址配置：
 
 ```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_API_BASE_URL=
 ```
 
-前端当前调用接口：
+说明：
+- 开发环境默认读取 `fe/.env.development`，当前指向 `http://127.0.0.1:8000`
+- 生产构建默认读取 `fe/.env.production`，当前为空，表示走同源反代
+
+前端当前主要调用接口：
 
 ```text
-POST /api/v1/agents/emotional/chat
+/api/v1/auth/register
+/api/v1/auth/login
+/api/v1/auth/me
+/api/v1/emotional-chat/history
+/api/v1/emotional-chat/messages
 ```
-
-用途：
-- 发送用户消息到情感陪伴助手
-- 自动复用后端返回的 `thread_id`，支持多轮记忆
-- 可在页面内一键开启新会话
 
 后端已默认允许本地开发跨域来源：
 - `http://127.0.0.1:5173`

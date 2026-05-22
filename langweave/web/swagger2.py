@@ -18,6 +18,11 @@ else:
     _IMPORT_ERROR = None
 
 
+def swagger2_available() -> bool:
+    """Return whether the optional Swagger 2 dependency is installed."""
+    return FastAPISwagger2 is not None
+
+
 def setup_swagger2(
     app: FastAPI,
     *,
