@@ -12,6 +12,120 @@ import {
   streamEmotionalMessage,
 } from "./api/client";
 
+// --- Tiny Markdown renderer ---
+const mdRenderer = (() => {
+  const esc = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // single-pass line renderer for common chat MD patterns
+  function renderLine(text) {
+    let html = esc(text);
+
+    // inline code `code`
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    // bold **text** or __text__
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/(?<!_)__(.+?)__(?!_)/g, "<strong>$1</strong>");
+
+    // italic *text* or _text_
+    html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    html = html.replace(/(?<!_)_(.+?)_(?!_)/g, "<em>$1</em>");
+
+    // strikethrough ~~text~~
+    html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+
+    // autolink URLs
+    html = html.replace(
+      /https?:\/\/[^\s<]+/g,
+      '<a href="$&" target="_blank" rel="noopener">$&</a>'
+    );
+    return html;
+  }
+
+  return function render(md) {
+    if (!md) return "";
+    const lines = md.split("\n");
+    let html = "";
+    let inCodeBlock = false;
+    let codeBuf = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // fenced code block ```lang / ```
+      if (/^```/.test(line)) {
+        if (inCodeBlock) {
+          html += `<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`;
+          codeBuf = [];
+          inCodeBlock = false;
+          continue;
+        } else {
+          inCodeBlock = true;
+          continue;
+        }
+      }
+
+      if (inCodeBlock) {
+        codeBuf.push(line);
+        continue;
+      }
+
+      // horizontal rule
+      if (/^---+\s*$/.test(line) || /^\*\*\*+\s*$/.test(line)) {
+        html += "<hr>";
+        continue;
+      }
+
+      // headings (only h3/h4 for chat, to avoid overpowering)
+      const hMatch = line.match(/^(#{1,4})\s+(.+)/);
+      if (hMatch) {
+        const tag = "h" + Math.min(hMatch[1].length + 2, 4); // h3-h4
+        html += `<${tag}>${renderLine(hMatch[2])}</${tag}>`;
+        continue;
+      }
+
+      // unordered list item
+      if (/^\s*[-*+]\s+/.test(line)) {
+        html += `<li>${renderLine(line.replace(/^\s*[-*+]\s+/, ""))}</li>`;
+        continue;
+      }
+
+      // ordered list item
+      if (/^\s*\d+\.\s+/.test(line)) {
+        html += `<li>${renderLine(line.replace(/^\s*\d+\.\s+/, ""))}</li>`;
+        continue;
+      }
+
+      // blockquote
+      if (/^\s*>\s?/.test(line)) {
+        html += `<blockquote><p>${renderLine(line.replace(/^\s*>\s?/, ""))}</p></blockquote>`;
+        continue;
+      }
+
+      // paragraph — wrap inline rendered text in <p>
+      if (line.trim()) {
+        html += `<p>${renderLine(line)}</p>`;
+      } else {
+        html += "<br>";
+      }
+    }
+
+    // close unclosed code block
+    if (inCodeBlock && codeBuf.length) {
+      html += `<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`;
+    }
+
+    // wrap consecutive <li> in <ul>
+    html = html.replace(
+      /(?:<li>.*?<\/li>\s*)+/g,
+      (match) => `<ul>${match}</ul>`
+    );
+
+    return html;
+  };
+})();
+
 const input = ref("");
 const username = ref("");
 const password = ref("");
@@ -407,9 +521,7 @@ onMounted(() => {
           class="msg"
           :class="m.role"
         >
-          <div class="msg-bubble">
-            <p>{{ m.text }}</p>
-          </div>
+          <div class="msg-bubble" v-html="mdRenderer(m.text)"></div>
           <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
         </div>
       </div>
@@ -684,6 +796,76 @@ main { width: 100%; }
   font-size: 0.9rem;
   max-width: 100%;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* --- MD content inside bubbles --- */
+.msg-bubble p {
+  margin: 0.2em 0;
+}
+.msg-bubble p:first-child { margin-top: 0; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble ul, .msg-bubble ol {
+  margin: 0.3em 0;
+  padding-left: 1.3em;
+}
+.msg-bubble li { margin: 0.15em 0; }
+.msg-bubble code {
+  font-family: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.82em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.06);
+}
+.msg.user .msg-bubble code {
+  background: rgba(255,255,255,0.2);
+}
+.msg-bubble pre {
+  margin: 0.4em 0;
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.04);
+  overflow-x: auto;
+}
+.msg.user .msg-bubble pre {
+  background: rgba(0,0,0,0.15);
+}
+.msg-bubble pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.82em;
+}
+.msg-bubble blockquote {
+  margin: 0.4em 0;
+  padding: 0.2em 0.6em;
+  border-left: 3px solid var(--accent);
+  opacity: 0.85;
+}
+.msg-bubble a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.9;
+}
+.msg.user .msg-bubble a { opacity: 0.85; }
+.msg-bubble a:hover { opacity: 1; }
+.msg-bubble hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.5em 0;
+}
+.msg-bubble strong { font-weight: 650; }
+.msg-bubble em { font-style: italic; }
+.msg-bubble del { text-decoration: line-through; opacity: 0.7; }
+.msg-bubble h3 {
+  font-size: 1.05em;
+  font-weight: 650;
+  margin: 0.4em 0 0.2em;
+}
+.msg-bubble h4 {
+  font-size: 0.95em;
+  font-weight: 600;
+  margin: 0.3em 0 0.15em;
 }
 
 .msg.user .msg-bubble {
@@ -738,15 +920,83 @@ main { width: 100%; }
 /* ===== Mobile ===== */
 @media (max-width: 640px) {
   html { font-size: 15px; }
-  .chat { max-width: 100%; box-shadow: none; }
-  .chat-head { padding: 0.55rem 0.75rem; }
+
+  /* --- Auth --- */
+  .auth { padding: 1rem; }
+  .auth-card {
+    max-width: 100%;
+    border-radius: 16px;
+    padding: 2rem 1.5rem 1.5rem;
+  }
+  .auth-icon { font-size: 2rem; }
+  .auth-title { font-size: 1.2rem; }
+  .auth-status { font-size: 0.75rem; }
+  .auth-form { gap: 0.5rem; }
+  .auth .input {
+    padding: 0.75rem 0.85rem;
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+
+  /* --- Chat --- */
+  .chat {
+    max-width: 100%;
+    box-shadow: none;
+    min-height: 100dvh;
+  }
+
+  .chat-head {
+    padding: 0.5rem 0.65rem;
+    padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  }
+  .chat-name { font-size: 0.85rem; }
+  .chat-head-right { gap: 0; }
+  .chat-head-right .ghost {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .msgs {
+    flex: 1;
+    padding: 0.6rem 0.65rem;
+    gap: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
   .msg { max-width: 88%; }
-  .msgs { padding: 0.6rem 0.75rem; gap: 0.5rem; }
-  .composer { padding: 0.6rem 0.75rem; padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px)); }
+
+  .msg-bubble {
+    padding: 0.55rem 0.8rem;
+    font-size: 0.88rem;
+    border-radius: 1rem;
+  }
+
+  .msg-meta { font-size: 0.55rem; }
+
+  .composer {
+    padding: 0.5rem 0.65rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.4rem;
+  }
+
+  .composer .ta {
+    padding: 0.45rem 0.75rem;
+    font-size: 16px; /* prevent iOS zoom */
+    max-height: 100px;
+  }
+
+  .composer .send {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 400px) {
   .msg { max-width: 95%; }
-  .auth-card { padding: 1.5rem; }
+  .auth-card { padding: 1.5rem 1.25rem 1.25rem; }
+  .chat-head { padding: 0.4rem 0.5rem; }
+  .msgs { padding: 0.4rem 0.5rem; }
+  .composer { padding: 0.4rem 0.5rem; gap: 0.35rem; }
 }
 </style>
