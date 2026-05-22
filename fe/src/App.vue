@@ -345,33 +345,35 @@ onMounted(() => {
     <!-- Auth -->
     <main v-if="!authenticated" class="auth">
       <div class="auth-card">
-        <header class="auth-head">
-          <span class="auth-badge">Emotion Support</span>
-          <h1>登录 / 注册</h1>
-          <p class="auth-desc">登录恢复你的历史对话，新用户自动注册</p>
-        </header>
+        <div class="auth-icon">💬</div>
+        <h1 class="auth-title">情感陪伴</h1>
+        <p class="auth-subtitle">登录后自动恢复你的历史对话</p>
 
-        <div class="status-badge">
+        <div class="auth-status">
           <span class="dot" :data-tone="statusTone"></span>
           <span>{{ status }}</span>
         </div>
 
         <form class="auth-form" @submit.prevent="handleAuthSubmit">
-          <input
-            v-model="username"
-            type="text"
-            autocomplete="username"
-            placeholder="用户名"
-            class="input"
-          />
-          <input
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            placeholder="密码（至少 6 位）"
-            class="input"
-          />
-          <button class="btn btn-primary" type="submit" :disabled="authLoading">
+          <div class="field">
+            <input
+              v-model="username"
+              type="text"
+              autocomplete="username"
+              placeholder="用户名"
+              class="input"
+            />
+          </div>
+          <div class="field">
+            <input
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="密码"
+              class="input"
+            />
+          </div>
+          <button class="btn btn-primary btn-block" type="submit" :disabled="authLoading">
             {{ authButtonText }}
           </button>
         </form>
@@ -384,7 +386,6 @@ onMounted(() => {
 
     <!-- Chat -->
     <main v-else class="chat">
-      <!-- Header -->
       <header class="chat-head">
         <div class="chat-head-left">
           <span class="dot" :data-tone="statusTone"></span>
@@ -396,12 +397,11 @@ onMounted(() => {
         </div>
       </header>
 
-      <!-- Messages -->
       <div ref="messageListRef" class="msgs" @scroll="onMessageListScroll">
         <div v-if="loadingOlder" class="load-hint">加载中...</div>
         <div v-else-if="hasMoreMessages" class="load-hint">向上滚动加载更多</div>
 
-        <article
+        <div
           v-for="m in messages"
           :key="m.id"
           class="msg"
@@ -409,15 +409,13 @@ onMounted(() => {
         >
           <div class="msg-bubble">
             <p>{{ m.text }}</p>
-            <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
           </div>
-        </article>
+          <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
+        </div>
       </div>
 
-      <!-- Composer -->
       <form class="composer" @submit.prevent="handleSend">
         <textarea
-          id="msg-input"
           v-model="input"
           class="input ta"
           :rows="isMobile ? 2 : 3"
@@ -438,73 +436,41 @@ onMounted(() => {
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-  --bg: #f0e7df;
-  --bg-warm: #e8ddd4;
+  --bg: #efe7e0;
   --fg: #2c1810;
   --fg2: #7a5a4a;
   --fg3: #b09080;
   --accent: #d9735a;
   --accent-hover: #c05e46;
-  --accent-glow: rgba(217,115,90,0.15);
-  --surface: #ffffff;
-  --surface-glass: rgba(255,255,255,0.7);
-  --border: #e0d3c8;
-  --border-light: #ede4dc;
+  --accent-soft: #f5ddd5;
+  --surface: #fff;
+  --border: #e6d9d0;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
   --radius: 10px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.08);
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
 
 body {
   font-family: var(--font);
-  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-warm) 100%);
+  background: var(--bg);
   color: var(--fg);
   min-height: 100dvh;
 }
 
-/* ===== Base ===== */
+/* ===== Layout ===== */
 .app {
   display: flex;
   justify-content: center;
-  width: 100%;
   min-height: 100dvh;
-  position: relative;
+  background:
+    radial-gradient(ellipse 600px 400px at 10% 0%, rgba(217,115,90,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 90% 100%, rgba(160,128,112,0.08) 0%, transparent 70%);
 }
 
-/* subtle ambient orbs */
-.app::before,
-.app::after {
-  content: "";
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-  z-index: 0;
-}
-.app::before {
-  width: 400px; height: 400px;
-  background: rgba(217,115,90,0.12);
-  top: -120px; left: -100px;
-}
-.app::after {
-  width: 350px; height: 350px;
-  background: rgba(160,128,112,0.10);
-  bottom: -100px; right: -80px;
-}
-
-main {
-  width: 100%;
-  position: relative;
-  z-index: 1;
-}
+main { width: 100%; }
 
 /* ===== Shared ===== */
 .input {
@@ -517,12 +483,9 @@ main {
   font-size: 0.9rem;
   background: var(--surface);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s;
 }
-.input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
+.input:focus { border-color: var(--accent); }
 .input::placeholder { color: var(--fg3); }
 
 .btn {
@@ -533,27 +496,27 @@ main {
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, opacity 0.15s, transform 0.1s;
+  transition: background 0.2s, opacity 0.15s;
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn:active:not(:disabled) { transform: scale(0.97); }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px var(--accent-glow);
 }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+.btn-block { width: 100%; }
 
 .ghost {
   background: transparent;
   color: var(--fg2);
-  padding: 0.3rem 0.6rem;
+  padding: 0.25rem 0.55rem;
   font-size: 0.78rem;
   font-weight: 500;
   border-radius: 6px;
 }
-.ghost:hover { background: rgba(0,0,0,0.05); color: var(--fg); }
+.ghost:hover { background: var(--accent-soft); color: var(--accent-hover); }
 
 .link-btn {
   background: none;
@@ -564,7 +527,7 @@ main {
   padding: 0.25rem 0;
   transition: opacity 0.15s;
 }
-.link-btn:hover { opacity: 0.8; text-decoration: underline; }
+.link-btn:hover { opacity: 0.75; }
 
 .dot {
   display: inline-block;
@@ -574,9 +537,9 @@ main {
   transition: background 0.3s;
   flex-shrink: 0;
 }
-.dot[data-tone="ok"] { background: #44b37f; box-shadow: 0 0 0 2px rgba(68,179,127,0.15); }
-.dot[data-tone="error"] { background: #e06050; box-shadow: 0 0 0 2px rgba(224,96,80,0.15); }
-.dot[data-tone="pending"] { background: #d9a040; box-shadow: 0 0 0 2px rgba(217,160,64,0.15); }
+.dot[data-tone="ok"] { background: #44b37f; }
+.dot[data-tone="error"] { background: #e06050; }
+.dot[data-tone="pending"] { background: #d9a040; }
 
 /* ===== Auth ===== */
 .auth {
@@ -590,56 +553,53 @@ main {
 
 .auth-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 360px;
   background: var(--surface);
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  padding: 2.25rem;
-  box-shadow: var(--shadow-lg);
+  border-radius: 20px;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.06);
 }
 
-.auth-head { margin-bottom: 1.5rem; }
-
-.auth-badge {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  margin-bottom: 0.6rem;
+.auth-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1;
 }
 
-.auth-head h1 {
+.auth-title {
   font-size: 1.35rem;
   font-weight: 650;
-  margin-bottom: 0.4rem;
-  color: var(--fg);
+  margin-bottom: 0.3rem;
 }
 
-.auth-desc {
+.auth-subtitle {
   font-size: 0.82rem;
   color: var(--fg2);
-  line-height: 1.5;
+  margin-bottom: 1.25rem;
 }
 
-.status-badge {
+.auth-status {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   font-size: 0.78rem;
   color: var(--fg2);
   margin-bottom: 1.25rem;
-  padding: 0.4rem 0.7rem;
-  background: rgba(0,0,0,0.02);
-  border-radius: 8px;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.6rem;
   margin-bottom: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 /* ===== Chat ===== */
@@ -649,6 +609,8 @@ main {
   height: 100dvh;
   max-width: 680px;
   margin: 0 auto;
+  background: var(--surface);
+  box-shadow: -1px 0 0 var(--border), 1px 0 0 var(--border);
 }
 
 /* --- Header --- */
@@ -657,11 +619,7 @@ main {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid var(--border-light);
-  background: var(--surface-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 0.75rem 1rem;
 }
 
 .chat-head-left {
@@ -678,7 +636,7 @@ main {
 .chat-head-right {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 /* --- Messages --- */
@@ -687,29 +645,26 @@ main {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1rem;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
   scroll-behavior: smooth;
 }
 
-/* scrollbar styling */
-.msgs::-webkit-scrollbar { width: 5px; }
-.msgs::-webkit-scrollbar-track { background: transparent; }
-.msgs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-.msgs::-webkit-scrollbar-thumb:hover { background: var(--fg3); }
+.msgs::-webkit-scrollbar { width: 4px; }
+.msgs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .load-hint {
   text-align: center;
   font-size: 0.68rem;
   color: var(--fg3);
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   user-select: none;
 }
 
 .msg {
   display: flex;
   flex-direction: column;
-  max-width: 80%;
+  max-width: 78%;
 }
 
 .msg.user {
@@ -724,43 +679,33 @@ main {
 
 .msg-bubble {
   padding: 0.6rem 0.95rem;
-  border-radius: 1.1rem;
+  border-radius: 1.2rem;
   line-height: 1.55;
   font-size: 0.9rem;
   max-width: 100%;
   word-wrap: break-word;
-  animation: msg-in 0.25s ease-out;
-}
-
-@keyframes msg-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 .msg.user .msg-bubble {
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  background: var(--accent);
   color: #fff;
   border-bottom-right-radius: 0.3rem;
-  box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 .msg.assistant .msg-bubble {
-  background: var(--surface);
-  border: 1px solid var(--border-light);
+  background: #f7f2ed;
   color: var(--fg);
   border-bottom-left-radius: 0.3rem;
-  box-shadow: var(--shadow-sm);
 }
 
 .msg-meta {
-  display: block;
   font-size: 0.58rem;
   color: var(--fg3);
-  margin-top: 0.25rem;
-  opacity: 0.85;
+  margin-top: 0.2rem;
+  padding: 0 0.2rem;
 }
 
-.msg.user .msg-meta { color: rgba(255,255,255,0.55); }
+.msg.user .msg-meta { color: var(--fg3); }
 
 /* --- Composer --- */
 .composer {
@@ -770,17 +715,14 @@ main {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--border-light);
-  background: var(--surface-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
 }
 
 .composer .ta {
   flex: 1;
   border-radius: 1.25rem;
   resize: none;
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem 0.85rem;
   font-size: 0.88rem;
   line-height: 1.5;
   max-height: 120px;
@@ -789,18 +731,18 @@ main {
 .composer .send {
   flex-shrink: 0;
   border-radius: 2rem;
-  padding: 0.55rem 1.1rem;
+  padding: 0.5rem 1.1rem;
   font-size: 0.82rem;
 }
 
 /* ===== Mobile ===== */
 @media (max-width: 640px) {
   html { font-size: 15px; }
-  .chat { max-width: 100%; }
+  .chat { max-width: 100%; box-shadow: none; }
   .chat-head { padding: 0.55rem 0.75rem; }
   .msg { max-width: 88%; }
-  .msgs { padding: 0.6rem; }
-  .composer { padding: 0.6rem; padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px)); }
+  .msgs { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+  .composer { padding: 0.6rem 0.75rem; padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (max-width: 400px) {
