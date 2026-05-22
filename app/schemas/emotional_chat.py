@@ -23,12 +23,16 @@ class EmotionalChatRequest(BaseModel):
 
 
 class EmotionalConversationResponse(BaseModel):
-    """Full conversation history."""
+    """Paginated conversation history."""
 
     conversation_id: int
     thread_id: str
     agent: str
     messages: list[EmotionalMessageItem]
+    total_count: int
+    offset: int = 0
+    limit: int = 50
+    has_more: bool = False
 
 
 class EmotionalChatResponse(BaseModel):

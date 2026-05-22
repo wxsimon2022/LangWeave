@@ -71,10 +71,18 @@ export function getCurrentUser() {
   });
 }
 
-export function fetchChatHistory() {
-  return request("/api/v1/emotional-chat/history", {
-    method: "GET",
-  });
+/**
+ * Fetch paginated emotional chat history.
+ *
+ * The backend returns messages from oldest to newest.
+ * Use offset=0, limit=50 to get the most recent 50 messages,
+ * offset=50, limit=50 to get the 50 before that, etc.
+ */
+export function fetchChatHistory(offset = 0, limit = 50) {
+  return request(
+    `/api/v1/emotional-chat/history?offset=${offset}&limit=${limit}`,
+    { method: "GET" },
+  );
 }
 
 export function sendEmotionalMessage(message) {

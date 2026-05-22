@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Any, Sequence
+from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from sqlalchemy import select
@@ -24,6 +26,9 @@ from langweave.memory import aclear_thread
 from langweave.registry import AgentRegistry
 from app.exceptions import AgentNotFoundError, ValidationError
 
+logger = logging.getLogger(__name__)
+DEFAULT_PAGE_LIMIT = 50
+
 
 def _message_to_schema(message: ChatMessage) -> EmotionalMessageItem:
     return EmotionalMessageItem(
@@ -32,6 +37,14 @@ def _message_to_schema(message: ChatMessage) -> EmotionalMessageItem:
         content=message.content,
         created_at=message.created_at,
     )
+
+
+def _safe_yield(event: str, payload: Any) -> str | None:
+    """Build an SSE string. Returns None if the generator is shutting down."""
+    try:
+        return EmotionalChatService._sse_event(event, payload)
+    except Exception:
+        return None
 
 
 class EmotionalChatService:
@@ -43,13 +56,26 @@ class EmotionalChatService:
         self._db = db
         self._registry = registry
 
-    async def get_history(self, user: User) -> EmotionalConversationResponse:
+    async def get_history(
+        self,
+        user: User,
+        *,
+        offset: int = 0,
+        limit: int = DEFAULT_PAGE_LIMIT,
+    ) -> EmotionalConversationResponse:
         conversation = self._get_or_create_conversation(user.id)
+        total_count = len(conversation.messages)
+        page = conversation.messages[offset : offset + limit]
+        has_more = offset + limit < total_count
         return EmotionalConversationResponse(
             conversation_id=conversation.id,
             thread_id=conversation.thread_id,
             agent=conversation.agent_name,
-            messages=[_message_to_schema(message) for message in conversation.messages],
+            messages=[_message_to_schema(m) for m in page],
+            total_count=total_count,
+            offset=offset,
+            limit=limit,
+            has_more=has_more,
         )
 
     async def send_message(self, user: User, message: str) -> EmotionalChatResponse:
@@ -106,11 +132,13 @@ class EmotionalChatService:
 
         conversation = self._get_or_create_conversation(user.id)
         agent = self._get_emotional_agent()
+
         history = [self._to_langchain_message(item) for item in conversation.messages]
         if getattr(agent.graph, "checkpointer", None) is not None:
             await aclear_thread(agent.graph, conversation.thread_id)
 
         final_reply = ""
+
         try:
             async for chunk in agent.astream(
                 {"messages": [*history, HumanMessage(content=content)]},
@@ -122,8 +150,12 @@ class EmotionalChatService:
                     continue
                 final_reply += text
                 yield self._sse_event("chunk", {"content": text})
-        except Exception as exc:
-            yield self._sse_event("error", {"message": str(exc)})
+        except GeneratorExit:
+            # Client disconnected — stop without persisting
+            return
+        except BaseException:
+            # Any other error: log, skip DB persistence, stop
+            logger.exception("Emotional chat stream error")
             return
 
         if not final_reply:
@@ -142,9 +174,6 @@ class EmotionalChatService:
         self._db.add_all([user_message, assistant_message])
         conversation.updated_at = datetime.now(timezone.utc)
         self._db.commit()
-        self._db.refresh(user_message)
-        self._db.refresh(assistant_message)
-        self._db.refresh(conversation)
 
         yield self._sse_event(
             "done",
@@ -170,6 +199,8 @@ class EmotionalChatService:
             thread_id=conversation.thread_id,
             agent=conversation.agent_name,
             messages=[],
+            total_count=0,
+            has_more=False,
         )
 
     def _get_or_create_conversation(self, user_id: int) -> Conversation:

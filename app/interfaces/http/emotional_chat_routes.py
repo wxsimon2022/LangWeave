@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+import logging
+
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.application.services.emotional_chat import EmotionalChatService
@@ -15,20 +17,25 @@ from app.schemas.emotional_chat import (
 from app.constants import API_V1_EMOTIONAL_CHAT
 from langweave.web.response import ApiResponse
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix=API_V1_EMOTIONAL_CHAT, tags=["emotional-chat"])
 
 
 @router.get(
     "/history",
     response_model=ApiResponse[EmotionalConversationResponse],
-    summary="读取当前用户的情感聊天历史",
+    summary="读取当前用户的情感聊天历史（支持分页）",
 )
 async def get_history(
     user: CurrentUser,
     service: EmotionalChatServiceDep,
+    offset: int = Query(0, ge=0, description="跳过前 N 条消息"),
+    limit: int = Query(50, ge=1, le=200, description="返回消息条数上限"),
 ) -> ApiResponse[EmotionalConversationResponse]:
     try:
-        return ApiResponse.ok(await service.get_history(user))
+        return ApiResponse.ok(
+            await service.get_history(user, offset=offset, limit=limit)
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -65,12 +72,9 @@ async def stream_message(
     user: CurrentUser,
     service: EmotionalChatServiceDep,
 ) -> StreamingResponse:
-    try:
-        stream = service.stream_message(user, body.message)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    stream = service.stream_message(user, body.message)
     return StreamingResponse(
-        stream,
+        _sse_safe_iterate(stream),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -78,6 +82,29 @@ async def stream_message(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+async def _sse_safe_iterate(async_gen: AsyncIterator[str]) -> AsyncIterator[str]:
+    """Wrap an SSE async generator so no exception escapes.
+
+    Starlette's ``StreamingResponse`` wraps the generator in a ``TaskGroup``
+    that bundles exceptions into an ``ExceptionGroup`` when the client
+    disconnects.  This wrapper catches everything so the ASGI layer never
+    sees an unhandled generator exception.
+    """
+    try:
+        async for item in async_gen:
+            try:
+                yield item
+            except GeneratorExit:
+                return
+    except GeneratorExit:
+        return
+    except BaseException:
+        logger.exception("SSE stream iterator error")
+    finally:
+        # Ensure the generator is closed to release resources.
+        await async_gen.aclose()
 
 
 @router.delete(
