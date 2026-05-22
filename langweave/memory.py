@@ -130,7 +130,7 @@ async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
     # so that WHERE clause comparisons don't fail with "Illegal mix of
     # collations".  If the table doesn't exist yet, fall back to the
     # database default, then to utf8mb4_0900_ai_ci (MySQL 8 default).
-    async with conn.cursor() as cur:
+    async with conn.cursor(aiomysql.DictCursor) as cur:
         await cur.execute(
             "SELECT COALESCE("
             "(SELECT TABLE_COLLATION FROM information_schema.TABLES "
