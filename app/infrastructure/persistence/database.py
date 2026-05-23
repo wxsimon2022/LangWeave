@@ -57,7 +57,6 @@ def get_session_factory(url: str | None = None) -> sessionmaker[Session]:
 def init_database() -> None:
     url = _database_url()
     engine = get_engine(url)
-    _drop_all_tables(engine)
     Base.metadata.create_all(bind=engine)
     if url == SQLITE_FALLBACK_URL:
         logger.warning(
