@@ -4,6 +4,6 @@ from langweave.config import load_dotenv
 
 load_dotenv()
 
-from app.bootstrap import create_business_app
+from app.core.app import create_app
 
-app = create_business_app()
+app = create_app()

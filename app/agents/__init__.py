@@ -1,5 +1,1 @@
-"""Compatibility exports for legacy agent imports."""
-
-from app.domain.agents import register_agents
-
-__all__ = ["register_agents"]
+"""Agent definitions — research, hewa, intent, fallback, memory."""

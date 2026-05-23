@@ -181,13 +181,13 @@ export async function streamEmotionalMessage(message, conversationId, handlers =
 
 /** List all conversations (from all agents). */
 export function listAllConversations() {
-  return request("/api/v1/chat/conversations", { method: "GET" });
+  return request("/api/v1/conversations", { method: "GET" });
 }
 
 /** Fetch paginated chat history for a conversation. */
 export function fetchChatHistoryV2(conversationId, offset = 0, limit = 50) {
   return request(
-    `/api/v1/chat/history?conversation_id=${conversationId}&offset=${offset}&limit=${limit}`,
+    `/api/v1/conversations/${conversationId}/history?offset=${offset}&limit=${limit}`,
     { method: "GET" },
   );
 }
@@ -195,21 +195,21 @@ export function fetchChatHistoryV2(conversationId, offset = 0, limit = 50) {
 /** Reset / clear history for a conversation. */
 export function resetChatHistoryV2(conversationId) {
   return request(
-    `/api/v1/chat/history?conversation_id=${conversationId}`,
+    `/api/v1/conversations/${conversationId}/history`,
     { method: "DELETE" },
   );
 }
 
 /** Delete a conversation entirely. */
 export function deleteConversationV2(conversationId) {
-  return request(`/api/v1/chat/conversations/${conversationId}`, {
+  return request(`/api/v1/conversations/${conversationId}`, {
     method: "DELETE",
   });
 }
 
 /** Rename a conversation. */
 export function updateConversationTitleV2(conversationId, title) {
-  return request(`/api/v1/chat/conversations/${conversationId}`, {
+  return request(`/api/v1/conversations/${conversationId}`, {
     method: "PATCH",
     body: JSON.stringify({ title }),
   });
@@ -223,7 +223,7 @@ export function updateConversationTitleV2(conversationId, title) {
  */
 export async function streamChatMessage(message, conversationId, handlers = {}) {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/api/v1/chat/stream`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/agents/unified/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

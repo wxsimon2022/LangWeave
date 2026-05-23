@@ -1,5 +1,4 @@
-"""Compatibility exports for legacy API imports."""
+"""API layer — HTTP route handlers organized by version.
 
-from app.interfaces.http import include_business_routers, router
-
-__all__ = ["router", "include_business_routers"]
+V1 routes are in ``app.api.v1``.
+"""

@@ -1,0 +1,1 @@
+"""Agent application migration — placeholder."""

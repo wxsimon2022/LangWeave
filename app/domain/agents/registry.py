@@ -1,5 +1,7 @@
-"""Register business agents into the LangWeave registry."""
+"""Register business agents into the LangWeave registry.
 
+Uses the V2 agent builders from ``app/agents/``.
+"""
 from __future__ import annotations
 
 import importlib
@@ -7,10 +9,10 @@ import importlib
 from langweave.config import AgentSettings
 from langweave.registry import AgentRegistry
 
-from app.domain.agents.assistant import build_assistant_agent
-from app.domain.agents.emotional import build_emotional_agent
-from app.domain.agents.fallback import build_unavailable_agent
-from app.domain.agents.intent import build_intent_agent
+from app.agents.research_agent_v2 import build_research_agent_v2
+from app.agents.hewa_agent_v2 import build_hewa_agent_v2
+from app.agents.intent_agent import build_intent_agent
+from app.agents.fallback_agent import build_unavailable_agent
 from app.constants import (
     INTENT_AGENT,
     ASSISTANT_AGENT,
@@ -56,5 +58,5 @@ def register_agents(registry: AgentRegistry) -> None:
         return
 
     registry.register(build_intent_agent(settings), overwrite=True)
-    registry.register(build_assistant_agent(settings), overwrite=True)
-    registry.register(build_emotional_agent(settings), overwrite=True)
+    registry.register(build_hewa_agent_v2(settings), overwrite=True)
+    registry.register(build_research_agent_v2(settings), overwrite=True)

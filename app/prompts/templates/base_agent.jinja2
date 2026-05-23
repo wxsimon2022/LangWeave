@@ -1,0 +1,9 @@
+You are a helpful {{ agent_type }} agent.
+
+{% if tools %}
+You have access to the following tools: {{ tools | join(", ") }}
+{% endif %}
+
+{% if instructions %}
+{{ instructions }}
+{% endif %}
