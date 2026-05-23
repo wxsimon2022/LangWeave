@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 
 import {
   checkHealth,
@@ -25,9 +25,13 @@ const isElectron = ref(
 
 // --- Desktop version & update check ---
 const desktopVersion = ref("");
-const updateInfo = ref(null); // { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes } | null
-const updateDismissed = ref(false);
-const updateChecking = ref(false);
+
+// 更新状态: null / "available" / "downloading" / "downloaded" / "installing"
+const updateState = ref(null);
+const updateVersion = ref("");
+const updateReleaseNotes = ref("");
+const downloadProgress = ref(0); // 0-100
+const updateError = ref("");
 
 function getElectronAPI() {
   return window.electronAPI || null;
@@ -43,56 +47,85 @@ async function loadDesktopVersion() {
   }
 }
 
+/** 触发开始下载更新 */
+async function handleDownloadUpdate() {
+  const api = getElectronAPI();
+  if (!api || typeof api.downloadUpdate !== "function") return;
+  updateState.value = "downloading";
+  downloadProgress.value = 0;
+  await api.downloadUpdate();
+}
+
+/** 安装已下载的更新并重启 */
+async function handleInstallUpdate() {
+  const api = getElectronAPI();
+  if (!api || typeof api.installUpdate !== "function") return;
+  updateState.value = "installing";
+  await api.installUpdate();
+}
+
+/** 手动检查更新 */
 async function checkDesktopUpdate() {
   const api = getElectronAPI();
   if (!api || typeof api.checkForUpdate !== "function") return;
-  updateChecking.value = true;
-  try {
-    const result = await api.checkForUpdate();
-    if (result.hasUpdate) {
-      updateInfo.value = result;
-    }
-  } catch {
-    // silently fail
-  } finally {
-    updateChecking.value = false;
-  }
+  await api.checkForUpdate();
 }
 
 function dismissUpdate() {
-  updateDismissed.value = true;
+  updateState.value = null;
+  updateVersion.value = "";
+  updateReleaseNotes.value = "";
+  downloadProgress.value = 0;
+  updateError.value = "";
 }
 
-function openReleaseUrl() {
-  const api = getElectronAPI();
-  if (api && updateInfo.value?.releaseUrl) {
-    api.openReleaseUrl(updateInfo.value.releaseUrl);
-  }
-}
-
-// Listen for auto-update results pushed from the main process (startup / periodic)
-let _unsubscribeUpdate = null;
+// ── 监听主进程推送的更新事件 ──
+let _cleanupFns = [];
 function setupUpdateListener() {
   const api = getElectronAPI();
-  if (!api || typeof api.onUpdateCheckResult !== "function") return;
-  _unsubscribeUpdate = api.onUpdateCheckResult((info) => {
-    if (info.hasUpdate) {
-      updateInfo.value = info;
-    }
-  });
+  if (!api) return;
+
+  if (api.onUpdateAvailable) {
+    const unsub = api.onUpdateAvailable((info) => {
+      updateVersion.value = info.version;
+      updateReleaseNotes.value = info.releaseNotes || "";
+      updateState.value = "available";
+    });
+    _cleanupFns.push(unsub);
+  }
+
+  if (api.onUpdateDownloadProgress) {
+    const unsub = api.onUpdateDownloadProgress((progress) => {
+      downloadProgress.value = progress.percent ?? 0;
+      if (progress.percent >= 100) {
+        updateState.value = "downloaded";
+      }
+    });
+    _cleanupFns.push(unsub);
+  }
+
+  if (api.onUpdateStatus) {
+    const unsub = api.onUpdateStatus((status) => {
+      if (status.status === "downloaded") {
+        updateState.value = "downloaded";
+      }
+    });
+    _cleanupFns.push(unsub);
+  }
+
+  if (api.onUpdateError) {
+    const unsub = api.onUpdateError((err) => {
+      updateError.value = err.message;
+    });
+    _cleanupFns.push(unsub);
+  }
 }
 
-// Periodic update check (every 5 minutes while the app is open)
-let _updateTimer = null;
-function startPeriodicUpdateCheck() {
-  stopPeriodicUpdateCheck();
-  _updateTimer = setInterval(checkDesktopUpdate, 5 * 60 * 1000);
-}
-function stopPeriodicUpdateCheck() {
-  if (_updateTimer) {
-    clearInterval(_updateTimer);
-    _updateTimer = null;
+function teardownUpdateListener() {
+  for (const fn of _cleanupFns) {
+    if (typeof fn === "function") fn();
   }
+  _cleanupFns = [];
 }
 
 // --- Heartbeat (online status) ---
@@ -660,26 +693,70 @@ onMounted(() => {
   restoreSession();
   loadDesktopVersion();
   setupUpdateListener();
-  checkDesktopUpdate();
-  startPeriodicUpdateCheck();
+});
+onUnmounted(() => {
+  teardownUpdateListener();
 });
 </script>
 
 <template>
   <div class="app" :class="{ 'electron-fullscreen': isElectron }">
     <!-- Desktop update notification -->
-    <div v-if="updateInfo && !updateDismissed" class="update-banner">
-      <div class="update-banner-content">
-        <span class="update-icon">📦</span>
-        <span>
-          <strong>发现新版本 {{ updateInfo.latestVersion }}</strong>
-          （当前 {{ updateInfo.currentVersion }}）
-        </span>
-        <button class="update-btn" @click="openReleaseUrl">查看详情</button>
-        <button class="update-close" @click="dismissUpdate" title="忽略">✕</button>
-      </div>
-      <div v-if="updateInfo.releaseNotes" class="update-release-notes">
-        <pre>{{ updateInfo.releaseNotes }}</pre>
+    <div v-if="updateState" class="update-banner">
+      <!-- 版本可用 -->
+      <template v-if="updateState === 'available'">
+        <div class="update-banner-content">
+          <span class="update-icon">📦</span>
+          <span>
+            <strong>发现新版本 {{ updateVersion }}</strong>
+            （当前 {{ desktopVersion }}）
+          </span>
+          <button class="update-btn" @click="handleDownloadUpdate">立即更新</button>
+          <button class="update-close" @click="dismissUpdate" title="以后再说">✕</button>
+        </div>
+        <div v-if="updateReleaseNotes" class="update-release-notes">
+          <pre>{{ updateReleaseNotes }}</pre>
+        </div>
+      </template>
+
+      <!-- 下载中 -->
+      <template v-else-if="updateState === 'downloading'">
+        <div class="update-banner-content">
+          <span class="update-icon">⬇️</span>
+          <span>
+            <strong>正在下载 {{ updateVersion }}…</strong>
+            <span class="update-progress-text">{{ downloadProgress }}%</span>
+          </span>
+        </div>
+        <div class="update-progress-bar">
+          <div class="update-progress-fill" :style="{ width: downloadProgress + '%' }"></div>
+        </div>
+      </template>
+
+      <!-- 下载完成，等待安装 -->
+      <template v-else-if="updateState === 'downloaded'">
+        <div class="update-banner-content">
+          <span class="update-icon">✅</span>
+          <span>
+            <strong>{{ updateVersion }} 已下载</strong>
+            （重启完成安装）
+          </span>
+          <button class="update-btn" @click="handleInstallUpdate">立即重启</button>
+          <button class="update-close" @click="dismissUpdate" title="稍后重启">✕</button>
+        </div>
+      </template>
+
+      <!-- 安装中 -->
+      <template v-else-if="updateState === 'installing'">
+        <div class="update-banner-content">
+          <span class="update-icon">🔄</span>
+          <span><strong>正在安装更新，即将重启…</strong></span>
+        </div>
+      </template>
+
+      <!-- 更新错误 -->
+      <div v-if="updateError" class="update-banner-content" style="background:#fef0f0; border-radius:6px; padding:0.4rem 0.6rem; margin-top:0.3rem;">
+        <span style="color:#d06050; font-size:0.8rem;">更新失败：{{ updateError }}</span>
       </div>
     </div>
 
@@ -804,12 +881,15 @@ onMounted(() => {
             <span v-if="desktopVersion" class="version-in-head">
               <span class="version-badge">v{{ desktopVersion }}</span>
               <button
-                v-if="!updateChecking"
+                v-if="!updateState"
                 class="version-check-btn"
                 type="button"
                 title="检查更新"
                 @click="checkDesktopUpdate"
               >↻</button>
+              <span v-else-if="updateState === 'available'" class="version-checking new">🆕</span>
+              <span v-else-if="updateState === 'downloading'" class="version-checking">{{ downloadProgress }}%</span>
+              <span v-else-if="updateState === 'downloaded'" class="version-checking new">✅</span>
               <span v-else class="version-checking">↻</span>
             </span>
             <button class="btn ghost" type="button" @click="handleLogout">退出</button>
@@ -1631,6 +1711,32 @@ main { width: 100%; }
 .version-checking {
   font-size: 0.6rem;
   color: var(--accent);
+  line-height: 1.4;
+}
+.version-checking.new {
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+
+/* ===== Update progress bar ===== */
+.update-progress-text {
+  margin-left: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.update-progress-bar {
+  margin-top: 0.35rem;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.update-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* ===== Update release notes ===== */

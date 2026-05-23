@@ -1,130 +1,102 @@
 const { app, BrowserWindow, ipcMain, shell, Notification } = require("electron");
 const path = require("path");
-const https = require("https");
+const { autoUpdater } = require("electron-updater");
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 const APP_URL = process.env.LANGWEAVE_URL || "https://chat.mybfs.cn/app.html";
-const GITHUB_REPO = "wxsimon2022/LangWeave";
-const CURRENT_VERSION = app.getVersion();
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 每 6 小时检查一次
 
 // ---------------------------------------------------------------------------
-// GitHub Release helpers
+// Auto-updater setup
 // ---------------------------------------------------------------------------
-function fetchLatestRelease() {
-  return new Promise((resolve, reject) => {
-    const req = https.get(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-      { headers: { "User-Agent": "LangWeave-Desktop", Accept: "application/vnd.github.v3+json" } },
-      (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => {
-          try {
-            const json = JSON.parse(data);
-            resolve({
-              tagName: json.tag_name || "",
-              htmlUrl: json.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
-              publishedAt: json.published_at || "",
-              body: json.body || "",
-            });
-          } catch {
-            reject(new Error("Failed to parse release data"));
-          }
-        });
-      }
-    );
-    req.on("error", reject);
-    req.setTimeout(10000, () => {
-      req.destroy();
-      reject(new Error("Request timed out"));
-    });
-  });
-}
+autoUpdater.autoDownload = false; // 让用户确认后再下载
+autoUpdater.autoInstallOnAppQuit = false; // 下载后用户手动触发安装
+autoUpdater.allowPrerelease = false;
 
-/**
- * Compare two semantic versions.
- * Returns: 1 if a > b, -1 if a < b, 0 if equal.
- */
-function compareVersions(a, b) {
-  const pa = a.replace(/^v/, "").split(".").map(Number);
-  const pb = b.replace(/^v/, "").split(".").map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const na = pa[i] || 0;
-    const nb = pb[i] || 0;
-    if (na > nb) return 1;
-    if (na < nb) return -1;
-  }
-  return 0;
-}
-
-/**
- * Check for a new version.
- * Returns { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes }.
- */
-async function checkForUpdate() {
-  try {
-    const release = await fetchLatestRelease();
-    const latestTag = release.tagName;
-    const hasUpdate = compareVersions(latestTag, `v${CURRENT_VERSION}`) > 0;
-    return {
-      hasUpdate,
-      currentVersion: CURRENT_VERSION,
-      latestVersion: latestTag.replace(/^v/, ""),
-      releaseUrl: release.htmlUrl,
-      releaseNotes: release.body,
-    };
-  } catch (err) {
-    return { hasUpdate: false, error: err.message };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Send update info to the renderer
-// ---------------------------------------------------------------------------
-function notifyRendererOfUpdate(info) {
+// Forward autoUpdater events to the renderer
+function sendToRenderer(channel, data) {
   const wins = BrowserWindow.getAllWindows();
   for (const win of wins) {
     if (!win.isDestroyed()) {
-      win.webContents.send("update-check-result", info);
+      win.webContents.send(channel, data);
     }
   }
 }
 
-async function performUpdateCheck(silent = false) {
-  const info = await checkForUpdate();
-  if (info.hasUpdate) {
-    notifyRendererOfUpdate(info);
+autoUpdater.on("checking-for-update", () => {
+  sendToRenderer("update-status", { status: "checking" });
+});
 
-    // Show native notification if the renderer isn't ready yet
-    if (silent && Notification.isSupported()) {
-      const notif = new Notification({
-        title: "LangWeave 有新版本",
-        body: `版本 ${info.latestVersion} 已发布，点击查看详情`,
-      });
-      notif.on("click", () => {
-        const wins = BrowserWindow.getAllWindows();
-        if (wins.length > 0 && !wins[0].isDestroyed()) {
-          wins[0].focus();
-        }
-      });
-      notif.show();
-    }
+autoUpdater.on("update-available", (info) => {
+  sendToRenderer("update-available", {
+    version: info.version,
+    releaseNotes: info.releaseNotes || "",
+    releaseDate: info.releaseDate || "",
+  });
+
+  // Native notification
+  if (Notification.isSupported()) {
+    const notif = new Notification({
+      title: "LangWeave 有新版本",
+      body: `版本 ${info.version} 已发布，点击更新`,
+    });
+    notif.on("click", () => {
+      const wins = BrowserWindow.getAllWindows();
+      if (wins.length > 0 && !wins[0].isDestroyed()) {
+        wins[0].focus();
+      }
+    });
+    notif.show();
   }
-  return info;
-}
+});
+
+autoUpdater.on("update-not-available", () => {
+  sendToRenderer("update-status", { status: "up-to-date" });
+});
+
+autoUpdater.on("download-progress", (progress) => {
+  sendToRenderer("update-download-progress", {
+    percent: Math.round(progress.percent),
+    bytesPerSecond: progress.bytesPerSecond,
+    total: progress.total,
+    transferred: progress.transferred,
+  });
+});
+
+autoUpdater.on("update-downloaded", () => {
+  sendToRenderer("update-status", { status: "downloaded" });
+});
+
+autoUpdater.on("error", (err) => {
+  sendToRenderer("update-error", { message: err.message });
+});
 
 // ---------------------------------------------------------------------------
 // IPC handlers
 // ---------------------------------------------------------------------------
+
+/** Manual check for update. */
 ipcMain.handle("check-for-update", async () => {
-  return performUpdateCheck();
+  autoUpdater.checkForUpdates();
+  return { checking: true };
+});
+
+/** Start downloading the update. */
+ipcMain.handle("download-update", async () => {
+  autoUpdater.downloadUpdate();
+  return { downloading: true };
+});
+
+/** Quit and install the downloaded update. */
+ipcMain.handle("install-update", async () => {
+  setImmediate(() => autoUpdater.quitAndInstall());
+  return { installing: true };
 });
 
 ipcMain.handle("get-app-version", () => {
-  return CURRENT_VERSION;
+  return app.getVersion();
 });
 
 ipcMain.handle("open-release-url", async (_event, url) => {
@@ -161,7 +133,7 @@ function createWindow() {
 
   // After the window loads, check for updates silently
   mainWindow.webContents.on("did-finish-load", () => {
-    performUpdateCheck(true);
+    autoUpdater.checkForUpdates();
   });
 }
 
@@ -180,4 +152,4 @@ app.on("activate", () => {
 });
 
 // Periodic background update check
-setInterval(() => performUpdateCheck(true), UPDATE_CHECK_INTERVAL_MS);
+setInterval(() => autoUpdater.checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
