@@ -559,8 +559,6 @@ onMounted(() => {
         <button class="link-btn" type="button" @click="authMode = authMode === 'login' ? 'register' : 'login'">
           {{ authMode === "login" ? "没有账号？去注册" : "已有账号？去登录" }}
         </button>
-
-        <a href="/" class="link-btn landing-link" target="_blank">📄 宣传页</a>
       </div>
     </main>
 
@@ -808,7 +806,6 @@ main { width: 100%; }
   transition: opacity 0.15s;
 }
 .link-btn:hover { opacity: 0.75; }
-.landing-link { display: inline-block; margin-top: 0.4rem; font-size: 0.78rem; text-decoration: none; }
 
 .dot {
   display: inline-block;
