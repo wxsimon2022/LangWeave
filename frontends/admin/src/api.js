@@ -85,3 +85,14 @@ export function adminGetConversationMessages(userId, conversationId) {
 export function adminGetOnlineUsers() {
   return request("/api/v1/admin/users/online", { method: "GET" });
 }
+
+export function adminCreateUser(username, password, isAdmin = false) {
+  return request("/api/v1/admin/users", {
+    method: "POST",
+    body: JSON.stringify({ username, password, is_admin: isAdmin }),
+  });
+}
+
+export function adminGetDauStats(days = 7) {
+  return request(`/api/v1/admin/stats/dau?days=${days}`, { method: "GET" });
+}

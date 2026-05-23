@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, adminGetOnlineUsers, getCurrentUser, login, setToken } from "./api.js";
+import { adminCreateUser, adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, adminGetOnlineUsers, adminGetDauStats, getCurrentUser, login, setToken } from "./api.js";
 
 // ===== Auth state =====
 const username = ref("");
@@ -47,6 +47,31 @@ function stopOnlinePolling() {
   }
 }
 
+// ===== DAU stats =====
+const dauStats = ref(null);
+const dauLoading = ref(false);
+
+async function loadDauStats() {
+  dauLoading.value = true;
+  try {
+    const resp = await adminGetDauStats(7);
+    dauStats.value = resp?.data || null;
+  } catch {
+    // ignore
+  } finally {
+    dauLoading.value = false;
+  }
+}
+
+function maxDau() {
+  if (!dauStats.value?.daily?.length) return 1;
+  return Math.max(...dauStats.value.daily.map((d) => d.dau), 1);
+}
+
+function dauPercent(dau) {
+  return (dau / maxDau()) * 100;
+}
+
 // ===== Password modal =====
 const showPasswordModal = ref(false);
 const passwordTargetUser = ref(null);
@@ -62,6 +87,14 @@ const convError = ref("");
 const chatMessages = ref([]);
 const chatTitle = ref("");
 const msgLoading = ref(false);
+
+// ===== Create user modal =====
+const showCreateUserModal = ref(false);
+const newUserName = ref("");
+const newUserPassword = ref("");
+const newUserIsAdmin = ref(false);
+const createUserLoading = ref(false);
+const createUserError = ref("");
 
 // ===== Auth =====
 const canLogin = computed(() => username.value.trim().length >= 3 && password.value.trim().length >= 6);
@@ -80,6 +113,7 @@ async function handleLogin() {
     password.value = "";
     await loadUsers();
     startOnlinePolling();
+    loadDauStats();
   } catch (error) {
     authError.value = error.message;
   } finally {
@@ -151,6 +185,44 @@ async function handleUpdatePassword() {
   }
 }
 
+// ===== Create user =====
+function openCreateUserModal() {
+  newUserName.value = "";
+  newUserPassword.value = "";
+  newUserIsAdmin.value = false;
+  createUserError.value = "";
+  createUserLoading.value = false;
+  showCreateUserModal.value = true;
+}
+
+function closeCreateUserModal() {
+  showCreateUserModal.value = false;
+  newUserName.value = "";
+  newUserPassword.value = "";
+  newUserIsAdmin.value = false;
+  createUserError.value = "";
+}
+
+async function handleCreateUser() {
+  if (createUserLoading.value) return;
+  const name = newUserName.value.trim();
+  const pwd = newUserPassword.value.trim();
+  if (name.length < 3) { createUserError.value = "用户名至少3个字符"; return; }
+  if (pwd.length < 6) { createUserError.value = "密码至少6个字符"; return; }
+  createUserLoading.value = true;
+  createUserError.value = "";
+  try {
+    await adminCreateUser(name, pwd, newUserIsAdmin.value);
+    closeCreateUserModal();
+    adminError.value = `用户 ${name} 已创建`;
+    await loadUsers();
+  } catch (error) {
+    createUserError.value = error.message;
+  } finally {
+    createUserLoading.value = false;
+  }
+}
+
 // ===== Chat history =====
 function openChatView(user) {
   chatViewUser.value = user;
@@ -216,6 +288,7 @@ async function restoreSession() {
     if (authenticated.value) {
       await loadUsers();
       startOnlinePolling();
+      loadDauStats();
     }
   } catch {
     setToken("");
@@ -274,12 +347,37 @@ onMounted(restoreSession);
           </span>
         </div>
         <div class="admin-header-right">
+          <button class="btn btn-primary btn-sm" type="button" @click="openCreateUserModal">+ 新增</button>
           <span class="admin-user">{{ currentUser?.username }}</span>
           <button class="btn ghost" type="button" @click="handleLogout">退出</button>
         </div>
       </header>
 
       <div class="admin-content">
+        <!-- DAU Stats Card -->
+        <div class="stats-card">
+          <div class="stats-header">
+            <span class="stats-title">日活跃用户（近7天）</span>
+            <span v-if="dauStats" class="stats-summary">
+              今日 {{ dauStats.today_dau }} · 峰值 {{ dauStats.peak_concurrent }} 在线
+            </span>
+          </div>
+          <div v-if="dauStats?.daily" class="dau-chart">
+            <div
+              v-for="d in dauStats.daily"
+              :key="d.date"
+              class="dau-bar-wrap"
+              :title="`${d.date}: ${d.dau} 人`"
+            >
+              <div class="dau-bar" :style="{ height: dauPercent(d.dau) + '%' }">
+                <span v-if="d.dau > 0" class="dau-bar-label">{{ d.dau }}</span>
+              </div>
+              <span class="dau-bar-date">{{ d.date.slice(5) }}</span>
+            </div>
+          </div>
+          <div v-else-if="dauLoading" class="load-hint">加载中...</div>
+        </div>
+
         <div v-if="loading" class="load-hint">加载中...</div>
 
         <div v-else-if="adminError" class="msg-bar error">{{ adminError }}</div>
@@ -364,6 +462,54 @@ onMounted(restoreSession);
                   :disabled="newPassword.trim().length < 6 || passwordLoading"
                 >
                   {{ passwordLoading ? "提交中..." : "确认修改" }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Create User Modal -->
+      <Teleport to="body">
+        <div v-if="showCreateUserModal" class="modal-overlay" @click.self="closeCreateUserModal">
+          <div class="modal-card">
+            <h3 class="modal-title">新增用户</h3>
+
+            <div v-if="createUserError" class="msg-bar error">{{ createUserError }}</div>
+
+            <form class="modal-form" @submit.prevent="handleCreateUser">
+              <div class="field">
+                <input
+                  v-model="newUserName"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="用户名（至少3位）"
+                  class="input"
+                />
+              </div>
+              <div class="field">
+                <input
+                  v-model="newUserPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="密码（至少6位）"
+                  class="input"
+                />
+              </div>
+              <div class="field checkbox-field">
+                <label>
+                  <input v-model="newUserIsAdmin" type="checkbox" />
+                  <span>设为管理员</span>
+                </label>
+              </div>
+              <div class="modal-actions">
+                <button class="btn ghost" type="button" @click="closeCreateUserModal">取消</button>
+                <button
+                  class="btn btn-primary"
+                  type="submit"
+                  :disabled="newUserName.trim().length < 3 || newUserPassword.trim().length < 6 || createUserLoading"
+                >
+                  {{ createUserLoading ? "创建中..." : "确认创建" }}
                 </button>
               </div>
             </form>
@@ -493,6 +639,11 @@ body {
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 
 .btn-block { width: 100%; }
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+}
 
 .ghost {
   background: transparent;
@@ -682,6 +833,20 @@ body {
 
 .modal-form .field { margin-bottom: 1rem; }
 
+.checkbox-field label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--fg2);
+  cursor: pointer;
+}
+.checkbox-field input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -816,6 +981,70 @@ body {
   color: var(--fg3);
   margin-top: 0.2rem;
   padding: 0 0.2rem;
+}
+
+/* ===== DAU Stats ===== */
+.stats-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.stats-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.stats-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.stats-summary {
+  font-size: 0.75rem;
+  color: var(--fg2);
+}
+.dau-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3rem;
+  height: 100px;
+}
+.dau-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+.dau-bar {
+  width: 100%;
+  max-width: 36px;
+  min-height: 2px;
+  background: var(--accent-soft);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: height 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.dau-bar-label {
+  position: absolute;
+  top: -1.1rem;
+  font-size: 0.6rem;
+  color: var(--fg2);
+  white-space: nowrap;
+}
+.dau-bar-date {
+  font-size: 0.6rem;
+  color: var(--fg3);
+  margin-top: 0.25rem;
+  white-space: nowrap;
 }
 
 /* ===== Mobile ===== */

@@ -109,6 +109,27 @@ class AuthService:
         self._db.commit()
         return user.id, username
 
+    def create_user(self, username: str, password: str, is_admin: bool = False) -> User:
+        """Create a new user (admin operation). Returns the created User."""
+        username = username.strip()
+        password = password.strip()
+        self._validate_credentials(username, password)
+
+        existing = self._db.scalar(select(User).where(User.username == username))
+        if existing is not None:
+            msg = "Username already exists"
+            raise ValueError(msg)
+
+        user = User(
+            username=username,
+            password_hash=hash_password(password),
+            is_admin=is_admin,
+        )
+        self._db.add(user)
+        self._db.commit()
+        self._db.refresh(user)
+        return user
+
     def update_user_password(self, user_id: int, new_password: str) -> tuple[int, str]:
         """Update a user's password. Returns (user_id, username)."""
         user = self._db.get(User, user_id)

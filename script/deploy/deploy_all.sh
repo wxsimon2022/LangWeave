@@ -29,32 +29,17 @@ REMOTE_SHARED_DIR="$REMOTE_APP_DIR/shared"
 REMOTE_VENV_DIR="$REMOTE_SHARED_DIR/.venv"
 REMOTE_PYTHON_BIN="$REMOTE_SHARED_DIR/python-bin"
 
-echo "[1/8] Building main frontend"
+echo "[1/6] Building main frontend"
 rm -rf "$BUILD_DIR"
 mkdir -p "$RELEASE_DIR"
 cd "$FRONTEND_DIR"
 npm run build
 
-echo "[2/8] Building admin frontend"
+echo "[2/6] Building admin frontend"
 cd "$ADMIN_DIR"
 npm run build
 
-echo "[3/8] Building desktop client (macOS + Windows)"
-if [[ -z "${CI_SKIP_DESKTOP:-}" ]]; then
-  cd "$DESKTOP_DIR"
-  # 使用国内镜像加速 Electron 下载
-  export ELECTRON_MIRROR="${ELECTRON_MIRROR:-https://npmmirror.com/mirrors/electron/}"
-  export ELECTRON_BUILDER_BINARIES_MIRROR="${ELECTRON_BUILDER_BINARIES_MIRROR:-https://npmmirror.com/mirrors/electron-builder-binaries/}"
-  if [ ! -d "node_modules" ]; then
-    npm install 2>&1 || true
-  fi
-  # Build macOS (dmg) and Windows (exe)
-  npx electron-builder --mac --win --publish=never 2>&1 || echo "Desktop build skipped (see above for details)"
-else
-  echo "CI_SKIP_DESKTOP is set, skipping desktop build."
-fi
-
-echo "[4/8] Preparing release bundle"
+echo "[3/6] Preparing release bundle"
 cd "$ROOT_DIR"
 mkdir -p "$RELEASE_DIR/frontend" "$RELEASE_DIR/admin" "$RELEASE_DIR/ssl"
 rsync -a \
@@ -87,25 +72,25 @@ cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn.key "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.pem "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.crt "$RELEASE_DIR/ssl/"
 
-echo "[5/8] Preparing remote directories"
+echo "[4/6] Preparing remote directories"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
 mkdir -p '$REMOTE_SHARED_DIR' '$REMOTE_CURRENT_DIR'
 "
 
-echo "[6/8] Rsync release files"
+echo "[5/6] Rsync release files"
 rsync -az --delete "$RELEASE_DIR/" "$REMOTE_HOST:$REMOTE_CURRENT_DIR/"
 
-echo "[7/8] Rsync main nginx config"
+echo "[6/6] Rsync main nginx config"
 rsync -az "$ROOT_DIR/script/deploy/nginx.chat.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/chat.mybfs.cn.conf"
 
-echo "[8/8] Rsync admin nginx config"
+echo "[7/7] Rsync admin nginx config"
 rsync -az "$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/admin.meet.mybfs.cn.conf"
 
-echo "[9/8] Running remote deployment"
+echo "[7/7] Running remote deployment"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
@@ -223,8 +208,14 @@ echo "Git: tagged and pushed $NEXT_TAG"
 echo "---"
 
 # ---------------------------------------------------------------------------
-# GitHub Release: upload desktop builds
+# GitHub Release: build desktop + upload
 # ---------------------------------------------------------------------------
+DESKTOP_BUILD_SCRIPT="$ROOT_DIR/script/deploy/build_desktop.sh"
+if [ -f "$DESKTOP_BUILD_SCRIPT" ]; then
+  echo "Desktop build: building client before release..."
+  bash "$DESKTOP_BUILD_SCRIPT" 2>&1 || echo "Desktop build failed (continuing with release anyway)"
+fi
+
 PUBLISH_SCRIPT="$ROOT_DIR/script/deploy/publish_release.sh"
 if [ -f "$PUBLISH_SCRIPT" ]; then
   if command -v gh &>/dev/null; then

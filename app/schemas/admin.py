@@ -43,6 +43,22 @@ class AdminUpdatePasswordResponse(BaseModel):
     username: str
 
 
+class AdminCreateUserRequest(BaseModel):
+    """Request to create a new user."""
+
+    username: str
+    password: str
+    is_admin: bool = False
+
+
+class AdminCreateUserResponse(BaseModel):
+    """Result of creating a new user."""
+
+    id: int
+    username: str
+    is_admin: bool
+
+
 class AdminConversationItem(BaseModel):
     """Conversation summary for admin view."""
 

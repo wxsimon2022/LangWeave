@@ -11,6 +11,8 @@ from app.interfaces.http.deps import AuthServiceDep, get_current_admin_user
 from app.schemas.admin import (
     AdminConversationListResponse,
     AdminConversationMessagesResponse,
+    AdminCreateUserRequest,
+    AdminCreateUserResponse,
     AdminUpdatePasswordRequest,
     AdminUpdatePasswordResponse,
     AdminUserDeleteResponse,
@@ -18,6 +20,7 @@ from app.schemas.admin import (
 )
 from app.infrastructure.persistence.models import User
 from app.infrastructure.cache.heartbeat import get_online_users_async, get_online_count_async
+from app.infrastructure.cache.dau import get_dau_summary_async
 from langweave.web.response import ApiResponse
 
 logger = logging.getLogger(__name__)
@@ -132,6 +135,34 @@ async def update_user_password(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@router.post(
+    "/users",
+    response_model=ApiResponse[AdminCreateUserResponse],
+    summary="创建新用户（仅管理员）",
+)
+async def create_user(
+    body: AdminCreateUserRequest,
+    _admin: AdminUser,
+    auth_service: AuthServiceDep,
+) -> ApiResponse[AdminCreateUserResponse]:
+    try:
+        user = auth_service.create_user(
+            username=body.username,
+            password=body.password,
+            is_admin=body.is_admin,
+        )
+        return ApiResponse.ok(
+            AdminCreateUserResponse(
+                id=user.id,
+                username=user.username,
+                is_admin=user.is_admin,
+            ),
+            message=f"用户 {user.username} 已创建",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.get(
     "/users/online",
     summary="获取当前在线用户列表（仅管理员）",
@@ -145,3 +176,15 @@ async def get_online_users(
         "online_count": count,
         "online_users": users,
     })
+
+
+@router.get(
+    "/stats/dau",
+    summary="获取 DAU 统计（仅管理员）",
+)
+async def get_dau_stats(
+    _admin: AdminUser,
+    days: int = 7,
+) -> ApiResponse[dict]:
+    summary = await get_dau_summary_async(days=days)
+    return ApiResponse.ok(summary)
