@@ -10,16 +10,27 @@ import {
   register,
   deleteConversation,
   setToken,
-  getToken,
+  sendHeartbeat,
   streamEmotionalMessage,
 } from "./api/client";
 
-// --- Desktop update check ---
+// --- Desktop version & update check ---
+const desktopVersion = ref("");
 const updateInfo = ref(null); // { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes } | null
 const updateDismissed = ref(false);
 
 function getElectronAPI() {
   return window.electronAPI || null;
+}
+
+async function loadDesktopVersion() {
+  const api = getElectronAPI();
+  if (!api || typeof api.getAppVersion !== "function") return;
+  try {
+    desktopVersion.value = await api.getAppVersion();
+  } catch {
+    // silently fail
+  }
 }
 
 async function checkDesktopUpdate() {
@@ -48,24 +59,6 @@ function openReleaseUrl() {
 
 // --- Heartbeat (online status) ---
 let heartbeatTimer = null;
-
-async function sendHeartbeat() {
-  const token = getToken();
-  if (!token) return;
-  const baseUrl =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
-  try {
-    await fetch(`${baseUrl}/api/v1/heartbeat/ping`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-  } catch {
-    // silent — don't spam logs
-  }
-}
 
 function startHeartbeat() {
   stopHeartbeat();

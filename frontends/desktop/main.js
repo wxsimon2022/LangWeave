@@ -79,6 +79,10 @@ ipcMain.handle("check-for-update", async () => {
   }
 });
 
+ipcMain.handle("get-app-version", () => {
+  return CURRENT_VERSION;
+});
+
 ipcMain.handle("open-release-url", async (_event, url) => {
   if (url) {
     shell.openExternal(url);

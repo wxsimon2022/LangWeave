@@ -169,3 +169,15 @@ export async function streamEmotionalMessage(message, conversationId, handlers =
     }
   }
 }
+
+// --- Heartbeat ---
+
+export async function sendHeartbeat() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    await request("/api/v1/heartbeat/ping", { method: "POST" });
+  } catch {
+    // silent — don't spam logs
+  }
+}
