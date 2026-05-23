@@ -20,6 +20,10 @@ class EmotionalChatRequest(BaseModel):
     """Send a new emotional chat message."""
 
     message: str = Field(..., min_length=1)
+    conversation_id: int | None = Field(
+        None,
+        description="Existing conversation ID, or None to create a new one",
+    )
 
 
 class EmotionalConversationResponse(BaseModel):
@@ -43,3 +47,20 @@ class EmotionalChatResponse(BaseModel):
     agent: str
     user_message: EmotionalMessageItem
     assistant_message: EmotionalMessageItem
+
+
+class ConversationSummary(BaseModel):
+    """Lightweight conversation summary for the list view."""
+
+    id: int
+    title: str
+    agent: str
+    message_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationListResponse(BaseModel):
+    """List of all conversations for the current user."""
+
+    conversations: list[ConversationSummary]

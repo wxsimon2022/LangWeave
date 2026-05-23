@@ -16,7 +16,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUILD_DIR="$ROOT_DIR/script/deploy/build"
 RELEASE_DIR="$BUILD_DIR/release"
-FRONTEND_DIR="$ROOT_DIR/fe"
+FRONTENDS_DIR="$ROOT_DIR/frontends"
+FRONTEND_DIR="$FRONTENDS_DIR/fe"
+ADMIN_DIR="$FRONTENDS_DIR/admin"
 REMOTE_HOST="root@124.223.72.223"
 REMOTE_APP_DIR="/home/biu/chat"
 REMOTE_NGINX_DIR="/usr/local/nginx/conf/vhost"
@@ -26,23 +28,29 @@ REMOTE_SHARED_DIR="$REMOTE_APP_DIR/shared"
 REMOTE_VENV_DIR="$REMOTE_SHARED_DIR/.venv"
 REMOTE_PYTHON_BIN="$REMOTE_SHARED_DIR/python-bin"
 
-echo "[1/7] Building frontend"
+echo "[1/8] Building main frontend"
 rm -rf "$BUILD_DIR"
 mkdir -p "$RELEASE_DIR"
 cd "$FRONTEND_DIR"
 npm run build
 
-echo "[2/7] Preparing release bundle"
+echo "[2/8] Building admin frontend"
+cd "$ADMIN_DIR"
+npm run build
+
+echo "[3/8] Preparing release bundle"
 cd "$ROOT_DIR"
-mkdir -p "$RELEASE_DIR/frontend" "$RELEASE_DIR/ssl"
+mkdir -p "$RELEASE_DIR/frontend" "$RELEASE_DIR/admin" "$RELEASE_DIR/ssl"
 rsync -a \
   --exclude ".git" \
   --exclude ".idea" \
   --exclude ".pytest_cache" \
   --exclude ".venv" \
   --exclude "__pycache__" \
-  --exclude "fe/node_modules" \
-  --exclude "fe/dist" \
+  --exclude "frontends/fe/node_modules" \
+  --exclude "frontends/fe/dist" \
+  --exclude "frontends/admin/node_modules" \
+  --exclude "frontends/admin/dist" \
   --exclude "script/deploy/build" \
   --exclude ".env" \
   --exclude ".env.prod" \
@@ -52,25 +60,30 @@ rsync -a \
 mkdir -p "$RELEASE_DIR/config"
 cp "$ROOT_DIR/.env.prod" "$RELEASE_DIR/config/.env.prod"
 rsync -a "$FRONTEND_DIR/dist/" "$RELEASE_DIR/frontend/"
+rsync -a "$ADMIN_DIR/dist/" "$RELEASE_DIR/admin/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn.key "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.pem "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.crt "$RELEASE_DIR/ssl/"
 
-echo "[3/7] Preparing remote directories"
+echo "[4/8] Preparing remote directories"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
 mkdir -p '$REMOTE_SHARED_DIR' '$REMOTE_CURRENT_DIR'
 "
 
-echo "[4/7] Rsync release files"
+echo "[5/8] Rsync release files"
 rsync -az --delete "$RELEASE_DIR/" "$REMOTE_HOST:$REMOTE_CURRENT_DIR/"
 
-echo "[5/7] Rsync nginx config"
+echo "[6/8] Rsync main nginx config"
 rsync -az "$ROOT_DIR/script/deploy/nginx.chat.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/chat.mybfs.cn.conf"
 
-echo "[6/7] Running remote deployment"
+echo "[7/8] Rsync admin nginx config"
+rsync -az "$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf" \
+  "$REMOTE_HOST:$REMOTE_NGINX_DIR/admin.meet.mybfs.cn.conf"
+
+echo "[8/8] Running remote deployment"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
@@ -136,11 +149,17 @@ fi
 /usr/local/nginx/sbin/nginx -s reload
 "
 
-echo "[7/7] Deployment complete"
+echo "Deployment complete"
 cat <<EOF
 One-click deploy finished.
 
-Current directory:
+Main (chat.mybfs.cn):
+  frontend: $REMOTE_CURRENT_DIR/frontend
+
+Admin (admin.meet.mybfs.cn):
+  frontend: $REMOTE_CURRENT_DIR/admin
+
+Backend:
   $REMOTE_CURRENT_DIR
 
 Shared env file:

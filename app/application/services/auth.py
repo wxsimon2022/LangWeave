@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.application.security import (
@@ -10,7 +10,8 @@ from app.application.security import (
     hash_password,
     verify_password,
 )
-from app.infrastructure.persistence.models import User
+from app.infrastructure.persistence.models import Conversation, User
+from app.schemas.admin import AdminUserItem, AdminUserListResponse
 from app.schemas.auth import AuthTokenResponse, UserProfile
 
 
@@ -53,6 +54,55 @@ class AuthService:
             msg = "User not found"
             raise ValueError(msg)
         return user
+
+    # ------------------------------------------------------------------
+    # Admin
+    # ------------------------------------------------------------------
+
+    def list_users(self) -> AdminUserListResponse:
+        """Return all registered users with their conversation counts."""
+        # Subquery for conversation count per user
+        count_subq = (
+            select(
+                Conversation.user_id,
+                func.count(Conversation.id).label("cnt"),
+            )
+            .group_by(Conversation.user_id)
+            .subquery()
+        )
+
+        stmt = (
+            select(User.id, User.username, User.created_at, func.coalesce(count_subq.c.cnt, 0))
+            .outerjoin(count_subq, User.id == count_subq.c.user_id)
+            .order_by(User.created_at.desc())
+        )
+        rows = self._db.execute(stmt).all()
+
+        users = [
+            AdminUserItem(
+                id=row.id,
+                username=row.username,
+                created_at=row.created_at,
+                conversation_count=row[3],  # cnt from coalesce
+            )
+            for row in rows
+        ]
+        return AdminUserListResponse(users=users, total_count=len(users))
+
+    def delete_user(self, user_id: int) -> tuple[int, str]:
+        """Delete a user by ID. Returns (deleted_id, deleted_username)."""
+        user = self._db.get(User, user_id)
+        if user is None:
+            msg = f"User {user_id} not found"
+            raise ValueError(msg)
+        username = user.username
+        self._db.delete(user)
+        self._db.commit()
+        return user.id, username
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
 
     def _build_token_response(self, user: User) -> AuthTokenResponse:
         return AuthTokenResponse(

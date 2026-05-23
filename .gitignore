@@ -83,5 +83,7 @@ pip-delete-this-directory.txt
 # poetry.lock
 
 # Frontend
-fe/node_modules/
-fe/dist/
+frontends/fe/node_modules/
+frontends/fe/dist/
+frontends/admin/node_modules/
+frontends/admin/dist/
