@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
-from app.application.security import decode_access_token
+from app.application.security import decode_access_token, get_auth_settings, verify_request_signature
 from app.application.services.auth import AuthService
 from app.application.services.emotional_chat import EmotionalChatService
 from app.application.services.intent import IntentService
@@ -66,6 +66,17 @@ def get_current_user(
         ) from exc
 
 
+def get_current_admin_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return current_user
+
+
 # Type aliases for cleaner dependency injection
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DBSession = Annotated[Session, Depends(get_db_session)]
@@ -73,3 +84,52 @@ IntentServiceDep = Annotated[IntentService, Depends(get_intent_service)]
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
 EmotionalChatServiceDep = Annotated[EmotionalChatService, Depends(get_emotional_chat_service)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+# ---------------------------------------------------------------------------
+# Optional API signing verification (HMAC-SHA256)
+# ---------------------------------------------------------------------------
+
+async def verify_api_signature(request: Request) -> None:
+    """Verify HMAC-SHA256 signature on request body + timestamp.
+
+    The frontend should include these headers:
+    - ``X-Timestamp``: Unix timestamp (seconds)
+    - ``X-Signature``: Base64 HMAC-SHA256 of ``{timestamp}.{body}``
+
+    If ``LANGWEAVE_API_SIGNING_SECRET`` is not configured, verification is skipped.
+    This is an **optional** extra layer — enable it in production for sensitive routes.
+    """
+    settings = get_auth_settings()
+    if not settings.api_signing_enabled:
+        return  # signing not configured, skip
+
+    timestamp_header = request.headers.get("X-Timestamp")
+    signature_header = request.headers.get("X-Signature")
+
+    if not timestamp_header or not signature_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-Timestamp or X-Signature header",
+        )
+
+    try:
+        timestamp = int(timestamp_header)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid X-Timestamp format",
+        )
+
+    body_bytes = await request.body()
+    body = body_bytes.decode("utf-8") if body_bytes else ""
+
+    if not verify_request_signature(body, timestamp, signature_header):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid request signature or timestamp expired",
+        )
+
+
+# Optional dependency — add to routes that need extra protection
+VerifiedRequest = Annotated[None, Depends(verify_api_signature)]

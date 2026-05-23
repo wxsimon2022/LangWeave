@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
+from jose import JWTError
 
+from app.application.security import (
+    create_access_token,
+    decode_refresh_token,
+)
 from app.application.services.auth import AuthService
 from app.interfaces.http.deps import AuthServiceDep, CurrentUser
-from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, UserProfile
+from app.schemas.auth import (
+    AuthTokenResponse,
+    LoginRequest,
+    RefreshTokenRequest,
+    RegisterRequest,
+    UserProfile,
+)
 from app.constants import API_V1_AUTH
 from langweave.web.response import ApiResponse
 
@@ -42,6 +53,32 @@ def login(
         return ApiResponse.ok(service.login(body.username, body.password))
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@router.post(
+    "/refresh",
+    response_model=ApiResponse[AuthTokenResponse],
+    summary="刷新 access token",
+)
+def refresh(
+    body: RefreshTokenRequest,
+    service: AuthServiceDep,
+) -> ApiResponse[AuthTokenResponse]:
+    try:
+        user_id = decode_refresh_token(body.refresh_token)
+        user = service.get_user(user_id)
+        return ApiResponse.ok(
+            AuthTokenResponse(
+                access_token=create_access_token(user.id),
+                token_type="bearer",
+                user=UserProfile.model_validate(user),
+            )
+        )
+    except (JWTError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        ) from exc
 
 
 @router.get(

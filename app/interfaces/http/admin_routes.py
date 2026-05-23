@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.interfaces.http.deps import AuthServiceDep, CurrentUser
+from app.interfaces.http.deps import AuthServiceDep, get_current_admin_user
 from app.schemas.admin import (
     AdminConversationListResponse,
     AdminConversationMessagesResponse,
@@ -15,10 +16,14 @@ from app.schemas.admin import (
     AdminUserDeleteResponse,
     AdminUserListResponse,
 )
+from app.infrastructure.persistence.models import User
 from langweave.web.response import ApiResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+AdminUser = Annotated[User, Depends(get_current_admin_user)]
 
 
 @router.get(
@@ -27,7 +32,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
     summary="列出所有注册用户（仅管理员）",
 )
 async def list_users(
-    current_user: CurrentUser,
+    _admin: AdminUser,
     auth_service: AuthServiceDep,
 ) -> ApiResponse[AdminUserListResponse]:
     try:
@@ -44,10 +49,10 @@ async def list_users(
 )
 async def delete_user(
     user_id: int,
-    current_user: CurrentUser,
+    _admin: AdminUser,
     auth_service: AuthServiceDep,
 ) -> ApiResponse[AdminUserDeleteResponse]:
-    if user_id == current_user.id:
+    if user_id == _admin.id:
         raise HTTPException(
             status_code=422,
             detail="Cannot delete yourself",
@@ -72,7 +77,7 @@ async def delete_user(
 )
 async def list_user_conversations(
     user_id: int,
-    current_user: CurrentUser,
+    _admin: AdminUser,
     auth_service: AuthServiceDep,
 ) -> ApiResponse[AdminConversationListResponse]:
     try:
@@ -90,7 +95,7 @@ async def list_user_conversations(
 async def get_user_conversation_messages(
     user_id: int,
     conversation_id: int,
-    current_user: CurrentUser,
+    _admin: AdminUser,
     auth_service: AuthServiceDep,
 ) -> ApiResponse[AdminConversationMessagesResponse]:
     try:
@@ -108,7 +113,7 @@ async def get_user_conversation_messages(
 async def update_user_password(
     user_id: int,
     body: AdminUpdatePasswordRequest,
-    current_user: CurrentUser,
+    _admin: AdminUser,
     auth_service: AuthServiceDep,
 ) -> ApiResponse[AdminUpdatePasswordResponse]:
     try:

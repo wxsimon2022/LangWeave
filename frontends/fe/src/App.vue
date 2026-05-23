@@ -13,6 +13,38 @@ import {
   streamEmotionalMessage,
 } from "./api/client";
 
+// --- Desktop update check ---
+const updateInfo = ref(null); // { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes } | null
+const updateDismissed = ref(false);
+
+function getElectronAPI() {
+  return window.electronAPI || null;
+}
+
+async function checkDesktopUpdate() {
+  const api = getElectronAPI();
+  if (!api || typeof api.checkForUpdate !== "function") return;
+  try {
+    const result = await api.checkForUpdate();
+    if (result.hasUpdate) {
+      updateInfo.value = result;
+    }
+  } catch {
+    // silently fail
+  }
+}
+
+function dismissUpdate() {
+  updateDismissed.value = true;
+}
+
+function openReleaseUrl() {
+  const api = getElectronAPI();
+  if (api && updateInfo.value?.releaseUrl) {
+    api.openReleaseUrl(updateInfo.value.releaseUrl);
+  }
+}
+
 // --- Tiny Markdown renderer ---
 const mdRenderer = (() => {
   const esc = (s) =>
@@ -469,11 +501,25 @@ onMounted(() => {
   isMobile.value = window.innerWidth <= 640;
   loadHealth();
   restoreSession();
+  checkDesktopUpdate();
 });
 </script>
 
 <template>
   <div class="app">
+    <!-- Desktop update notification -->
+    <div v-if="updateInfo && !updateDismissed" class="update-banner">
+      <div class="update-banner-content">
+        <span class="update-icon">📦</span>
+        <span>
+          <strong>发现新版本 {{ updateInfo.latestVersion }}</strong>
+          （当前 {{ updateInfo.currentVersion }}）
+        </span>
+        <button class="update-btn" @click="openReleaseUrl">立即下载</button>
+        <button class="update-close" @click="dismissUpdate" title="忽略">✕</button>
+      </div>
+    </div>
+
     <!-- Auth -->
     <main v-if="!authenticated" class="auth">
       <div class="auth-card">
@@ -642,6 +688,57 @@ body {
   color: var(--fg);
   min-height: 100dvh;
 }
+
+/* ===== Desktop Update Banner ===== */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #2c1810;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: center;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.update-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.update-icon { font-size: 1.1rem; }
+.update-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.update-btn:hover { background: var(--accent-hover); }
+.update-close {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0.1rem 0.3rem;
+  line-height: 1;
+}
+.update-close:hover { opacity: 1; }
 
 /* ===== Layout ===== */
 .app {

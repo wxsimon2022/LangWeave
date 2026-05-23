@@ -70,6 +70,7 @@ def init_database() -> None:
 #  id            INT          PK AUTO_INCREMENT
 #  username      VARCHAR(64)  UNIQUE INDEX
 #  password_hash VARCHAR(255)
+#  is_admin      TINYINT(1)   DEFAULT 0
 #  created_at    DATETIME
 #
 # c_conversations

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from app.domain.agents import register_agents
 from app.interfaces.http import include_business_routers
@@ -18,21 +21,43 @@ from langweave.web.swagger2 import setup_swagger2, swagger2_available
 load_dotenv()
 setup_logging()
 
+logger = logging.getLogger(__name__)
+
 
 def _seed_admin() -> None:
-    """Create or update default admin account (admin/admin123)."""
+    """Create or update default admin account (admin/admin123).
+
+    Safely handles missing is_admin column by adding it if needed.
+    """
     session_factory = get_session_factory()
     with session_factory() as session:
+        # 确保 is_admin 列存在（兼容旧表结构）
+        try:
+            session.execute(
+                text("SELECT is_admin FROM c_users LIMIT 1")
+            )
+        except Exception:
+            logger.info("Adding is_admin column to c_users...")
+            session.execute(
+                text(
+                    "ALTER TABLE c_users "
+                    "ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0"
+                )
+            )
+            session.commit()
+
         admin_user = session.query(User).filter(User.username == "admin").first()
         if admin_user is None:
             session.add(
                 User(
                     username="admin",
                     password_hash=hash_password("admin123"),
+                    is_admin=True,
                 )
             )
         else:
             admin_user.password_hash = hash_password("admin123")
+            admin_user.is_admin = True
         session.commit()
 
 

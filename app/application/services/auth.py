@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.application.security import (
     create_access_token,
+    create_refresh_token,
+    get_auth_settings,
     hash_password,
     verify_password,
 )
@@ -195,9 +197,12 @@ class AuthService:
     # ------------------------------------------------------------------
 
     def _build_token_response(self, user: User) -> AuthTokenResponse:
+        settings = get_auth_settings()
         return AuthTokenResponse(
             access_token=create_access_token(user.id),
+            refresh_token=create_refresh_token(user.id),
             token_type="bearer",
+            expires_in=settings.access_token_expire_minutes * 60,
             user=UserProfile.model_validate(user),
         )
 

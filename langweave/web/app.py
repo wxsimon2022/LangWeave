@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langweave import __version__
 from langweave.registry import AgentRegistry
 from langweave.web.handlers import register_exception_handlers
+from langweave.web.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 from langweave.web.openapi import API_DESCRIPTION, SWAGGER_UI_PARAMETERS, TAGS_METADATA
 from langweave.web.response import ApiResponse
 from langweave.web.routes import router
@@ -82,6 +83,15 @@ def create_app(
     )
     app.state.registry = reg
     register_exception_handlers(app)
+
+    # Security: rate limiting
+    app.add_middleware(
+        RateLimitMiddleware,
+        exclude_paths={"/health", "/api/v1/auth/login", "/api/v1/auth/register"},
+    )
+
+    # Security: HTTP headers
+    app.add_middleware(SecurityHeadersMiddleware)
 
     if cors_origins:
         app.add_middleware(
