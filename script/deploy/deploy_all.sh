@@ -19,6 +19,7 @@ RELEASE_DIR="$BUILD_DIR/release"
 FRONTENDS_DIR="$ROOT_DIR/frontends"
 FRONTEND_DIR="$FRONTENDS_DIR/fe"
 ADMIN_DIR="$FRONTENDS_DIR/admin"
+DESKTOP_DIR="$FRONTENDS_DIR/desktop"
 REMOTE_HOST="root@124.223.72.223"
 REMOTE_APP_DIR="/home/biu/chat"
 REMOTE_NGINX_DIR="/usr/local/nginx/conf/vhost"
@@ -38,7 +39,15 @@ echo "[2/8] Building admin frontend"
 cd "$ADMIN_DIR"
 npm run build
 
-echo "[3/8] Preparing release bundle"
+echo "[3/8] Building desktop client (macOS + Windows)"
+cd "$DESKTOP_DIR"
+if [ ! -d "node_modules" ]; then
+  npm install --ignore-scripts 2>&1 || true
+fi
+# Build macOS (dmg) and Windows (exe) — skip Linux for now to keep build time reasonable
+npx electron-builder --mac --win --publish=never 2>&1 || echo "Desktop build skipped (see above for details)"
+
+echo "[4/8] Preparing release bundle"
 cd "$ROOT_DIR"
 mkdir -p "$RELEASE_DIR/frontend" "$RELEASE_DIR/admin" "$RELEASE_DIR/ssl"
 rsync -a \
@@ -61,29 +70,35 @@ mkdir -p "$RELEASE_DIR/config"
 cp "$ROOT_DIR/.env.prod" "$RELEASE_DIR/config/.env.prod"
 rsync -a "$FRONTEND_DIR/dist/" "$RELEASE_DIR/frontend/"
 rsync -a "$ADMIN_DIR/dist/" "$RELEASE_DIR/admin/"
+# Copy desktop builds into frontend/desktop/ so downloads are served from /desktop/
+if [ -d "$DESKTOP_DIR/release" ]; then
+  mkdir -p "$RELEASE_DIR/frontend/desktop"
+  # Find and copy .dmg and .exe files
+  find "$DESKTOP_DIR/release" -maxdepth 2 \( -name "*.dmg" -o -name "*.exe" \) -exec cp {} "$RELEASE_DIR/frontend/desktop/" \;
+fi
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn.key "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.pem "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.crt "$RELEASE_DIR/ssl/"
 
-echo "[4/8] Preparing remote directories"
+echo "[5/8] Preparing remote directories"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
 mkdir -p '$REMOTE_SHARED_DIR' '$REMOTE_CURRENT_DIR'
 "
 
-echo "[5/8] Rsync release files"
+echo "[6/8] Rsync release files"
 rsync -az --delete "$RELEASE_DIR/" "$REMOTE_HOST:$REMOTE_CURRENT_DIR/"
 
-echo "[6/8] Rsync main nginx config"
+echo "[7/8] Rsync main nginx config"
 rsync -az "$ROOT_DIR/script/deploy/nginx.chat.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/chat.mybfs.cn.conf"
 
-echo "[7/8] Rsync admin nginx config"
+echo "[8/8] Rsync admin nginx config"
 rsync -az "$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/admin.meet.mybfs.cn.conf"
 
-echo "[8/8] Running remote deployment"
+echo "[9/8] Running remote deployment"
 ssh "$REMOTE_HOST" "
 set -euo pipefail
 
