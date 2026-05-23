@@ -1,3 +1,6 @@
 User-agent: *
 Allow: /
+Allow: /app.html
+Disallow: /api/
+
 Sitemap: https://chat.mybfs.cn/sitemap.xml

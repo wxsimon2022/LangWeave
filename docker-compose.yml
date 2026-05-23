@@ -1,0 +1,78 @@
+version: "3.9"
+
+# =============================================================================
+# LangWeave Docker Deployment
+#
+# Components:
+#   app       — FastAPI backend
+#   nginx     — Reverse proxy + frontend static files (multi-stage build)
+#
+# Notes:
+#   - MySQL and Redis are expected to be external services.
+#     Set LANGWEAVE_DATABASE_URL and LANGWEAVE_REDIS_URL in .env or here.
+#   - On the Docker host, ensure the app container can reach your MySQL/Redis
+#     instances (e.g. host.docker.internal on macOS/Windows, or an internal
+#     network address).
+#
+# Quick start:
+#   cp .env.example .env          # edit with your secrets
+#   docker compose up -d          # start all services
+#   http://localhost               # access the app
+#   docker compose down           # stop all services
+#
+# Required environment variables (.env):
+#   DEEPSEEK_API_KEY=sk-...
+#   LANGWEAVE_JWT_SECRET=change-me
+#   LANGWEAVE_DATABASE_URL=mysql+pymysql://user:pass@host:3306/langweave
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # FastAPI Backend
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    container_name: langweave-app
+    restart: unless-stopped
+    environment:
+      # Database (external — set in .env)
+      LANGWEAVE_DATABASE_URL: ${LANGWEAVE_DATABASE_URL}
+
+      # Redis (external — set in .env)
+      LANGWEAVE_REDIS_URL: ${LANGWEAVE_REDIS_URL:-redis://127.0.0.1:6379/0}
+
+      # Model provider
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      LANGWEAVE_MODEL: ${LANGWEAVE_MODEL:-deepseek:deepseek-chat}
+
+      # JWT
+      LANGWEAVE_JWT_SECRET: ${LANGWEAVE_JWT_SECRET}
+
+      # CORS (frontend is served by nginx on the same origin)
+      LANGWEAVE_CORS_ORIGINS: ${LANGWEAVE_CORS_ORIGINS:-http://localhost,http://chat.mybfs.cn}
+
+      # Logging
+      LANGWEAVE_DEBUG: ${LANGWEAVE_DEBUG:-false}
+    expose:
+      - "8000"
+
+  # ---------------------------------------------------------------------------
+  # Nginx (reverse proxy + frontend static files)
+  # ---------------------------------------------------------------------------
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: langweave-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Uncomment for HTTPS (place certs at ./certs/)
+      # - "443:443"
+    depends_on:
+      - app

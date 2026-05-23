@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+*.egg-info
+dist
+build
+
+# Virtual environments
+.venv
+venv
+env
+
+# Environment files
+.env
+.env.prod
+
+# Node
+node_modules
+frontends/fe/node_modules
+frontends/admin/node_modules
+frontends/desktop/node_modules
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+frontends/fe/dist
+frontends/admin/dist
+script/deploy/build
+frontends/desktop/release
