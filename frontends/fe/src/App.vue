@@ -532,6 +532,7 @@ onMounted(() => {
   isMobile.value = window.innerWidth <= 640;
   loadHealth();
   restoreSession();
+  loadDesktopVersion();
   checkDesktopUpdate();
 });
 </script>
@@ -684,6 +685,11 @@ onMounted(() => {
             {{ sending ? "..." : "发送" }}
           </button>
         </form>
+      </div>
+
+      <!-- Desktop version badge -->
+      <div v-if="desktopVersion" class="desktop-version">
+        LangWeave Desktop v{{ desktopVersion }}
       </div>
     </main>
   </div>
@@ -1361,5 +1367,15 @@ main { width: 100%; }
   .chat-head { padding: 0.4rem 0.5rem; }
   .msgs { padding: 0.4rem 0.5rem; }
   .composer { padding: 0.4rem 0.5rem; gap: 0.35rem; }
+}
+
+/* ===== Desktop version badge ===== */
+.desktop-version {
+  text-align: center;
+  padding: 0.35rem 0 0.5rem;
+  font-size: 0.65rem;
+  color: var(--fg3);
+  user-select: none;
+  cursor: default;
 }
 </style>
