@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, getCurrentUser, login, setToken } from "./api.js";
+import { adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, adminGetOnlineUsers, getCurrentUser, login, setToken } from "./api.js";
 
 // ===== Auth state =====
 const username = ref("");
@@ -14,6 +14,38 @@ const authError = ref("");
 const users = ref([]);
 const loading = ref(false);
 const adminError = ref("");
+
+// ===== Online status =====
+const onlineUserIds = ref(new Set());
+const onlineCount = ref(0);
+let onlinePollTimer = null;
+
+async function pollOnlineUsers() {
+  try {
+    const resp = await adminGetOnlineUsers();
+    const data = resp?.data || {};
+    onlineCount.value = data.online_count || 0;
+    onlineUserIds.value = new Set((data.online_users || []).map((u) => u.id));
+  } catch {
+    // ignore poll failures
+  }
+}
+
+function isOnline(userId) {
+  return onlineUserIds.value.has(userId);
+}
+
+function startOnlinePolling() {
+  pollOnlineUsers();
+  onlinePollTimer = setInterval(pollOnlineUsers, 15000); // every 15s
+}
+
+function stopOnlinePolling() {
+  if (onlinePollTimer) {
+    clearInterval(onlinePollTimer);
+    onlinePollTimer = null;
+  }
+}
 
 // ===== Password modal =====
 const showPasswordModal = ref(false);
@@ -47,6 +79,7 @@ async function handleLogin() {
     authenticated.value = true;
     password.value = "";
     await loadUsers();
+    startOnlinePolling();
   } catch (error) {
     authError.value = error.message;
   } finally {
@@ -55,6 +88,7 @@ async function handleLogin() {
 }
 
 function handleLogout() {
+  stopOnlinePolling();
   setToken("");
   authenticated.value = false;
   currentUser.value = null;
@@ -181,6 +215,7 @@ async function restoreSession() {
     authenticated.value = Boolean(currentUser.value);
     if (authenticated.value) {
       await loadUsers();
+      startOnlinePolling();
     }
   } catch {
     setToken("");
@@ -234,6 +269,9 @@ onMounted(restoreSession);
       <header class="admin-header">
         <div class="admin-header-left">
           <span class="admin-header-title">用户管理</span>
+          <span class="online-badge" :class="{ active: onlineCount > 0 }">
+            {{ onlineCount }} 在线
+          </span>
         </div>
         <div class="admin-header-right">
           <span class="admin-user">{{ currentUser?.username }}</span>
@@ -259,7 +297,10 @@ onMounted(restoreSession);
           <tbody>
             <tr v-for="u in users" :key="u.id">
               <td>{{ u.id }}</td>
-              <td>{{ u.username }}</td>
+              <td>
+                <span class="online-dot" :class="{ on: isOnline(u.id) }"></span>
+                {{ u.username }}
+              </td>
               <td>{{ u.conversation_count }}</td>
               <td>{{ formatDate(u.created_at) }}</td>
               <td>
@@ -529,6 +570,37 @@ body {
 .admin-header-title {
   font-size: 1.05rem;
   font-weight: 650;
+}
+
+.online-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #e8e0d8;
+  color: var(--fg3);
+  vertical-align: middle;
+}
+.online-badge.active {
+  background: #d4edda;
+  color: #1a7c3a;
+}
+
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.online-dot.on {
+  background: #2ecc71;
+  box-shadow: 0 0 4px rgba(46,204,113,0.5);
 }
 
 .admin-header-right {

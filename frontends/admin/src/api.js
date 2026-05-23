@@ -81,3 +81,7 @@ export function adminListConversations(userId) {
 export function adminGetConversationMessages(userId, conversationId) {
   return request(`/api/v1/admin/users/${userId}/conversations/${conversationId}`, { method: "GET" });
 }
+
+export function adminGetOnlineUsers() {
+  return request("/api/v1/admin/users/online", { method: "GET" });
+}

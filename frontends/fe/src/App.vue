@@ -10,6 +10,7 @@ import {
   register,
   deleteConversation,
   setToken,
+  getToken,
   streamEmotionalMessage,
 } from "./api/client";
 
@@ -42,6 +43,40 @@ function openReleaseUrl() {
   const api = getElectronAPI();
   if (api && updateInfo.value?.releaseUrl) {
     api.openReleaseUrl(updateInfo.value.releaseUrl);
+  }
+}
+
+// --- Heartbeat (online status) ---
+let heartbeatTimer = null;
+
+async function sendHeartbeat() {
+  const token = getToken();
+  if (!token) return;
+  const baseUrl =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
+  try {
+    await fetch(`${baseUrl}/api/v1/heartbeat/ping`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+  } catch {
+    // silent — don't spam logs
+  }
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  sendHeartbeat();
+  heartbeatTimer = setInterval(sendHeartbeat, 30000); // every 30s
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
   }
 }
 
@@ -269,6 +304,7 @@ async function restoreSession() {
     authenticated.value = Boolean(currentUser.value);
     if (authenticated.value) {
       await refreshConversationList();
+      startHeartbeat();
       // Load the most recent conversation
       if (conversations.value.length > 0) {
         await loadConversation(conversations.value[0].id);
@@ -369,6 +405,7 @@ async function handleAuthSubmit() {
     currentUser.value = data?.user || null;
     authenticated.value = Boolean(currentUser.value);
     password.value = "";
+    startHeartbeat();
     await refreshConversationList();
     if (conversations.value.length > 0) {
       await loadConversation(conversations.value[0].id);
@@ -386,6 +423,7 @@ async function handleAuthSubmit() {
 }
 
 function handleLogout() {
+  stopHeartbeat();
   setToken("");
   authenticated.value = false;
   currentUser.value = null;

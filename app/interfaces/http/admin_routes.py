@@ -17,6 +17,7 @@ from app.schemas.admin import (
     AdminUserListResponse,
 )
 from app.infrastructure.persistence.models import User
+from app.infrastructure.cache.heartbeat import get_online_users_async, get_online_count_async
 from langweave.web.response import ApiResponse
 
 logger = logging.getLogger(__name__)
@@ -129,3 +130,18 @@ async def update_user_password(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
+    "/users/online",
+    summary="获取当前在线用户列表（仅管理员）",
+)
+async def get_online_users(
+    _admin: AdminUser,
+) -> ApiResponse[dict]:
+    users = await get_online_users_async()
+    count = await get_online_count_async()
+    return ApiResponse.ok({
+        "online_count": count,
+        "online_users": users,
+    })
