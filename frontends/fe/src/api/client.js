@@ -223,7 +223,7 @@ export function updateConversationTitleV2(conversationId, title) {
  */
 export async function streamChatMessage(message, conversationId, handlers = {}) {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/api/v1/agents/unified/stream`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/unified/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

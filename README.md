@@ -48,7 +48,7 @@ flowchart TB
    │
    ▼
 ┌───────────────────────────────────────────────┐
-│  POST /api/v1/agents/unified/stream           │  ← 统一入口（SSE 流式）
+│  POST /api/v1/unified/stream                  │  ← 统一入口（SSE 流式）
 │  POST /api/v1/chat/stream                     │  ← 旧版入口（向后兼容）
 │    │                                           │
 │    ▼                                           │
@@ -157,7 +157,7 @@ LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/v1/agents/unified/stream` | **入口 Agent（新版）** — SSE 流式，先识别意图后路由 |
+| POST | `/api/v1/unified/stream` | **入口 Agent（新版）** — SSE 流式，先识别意图后路由 |
 | POST | `/api/v1/chat/stream` | **入口 Agent（旧版）** — 同上，向后兼容 |
 | GET | `/api/v1/conversations` | 列出所有对话（新版） |
 | GET | `/api/v1/conversations/{id}/history` | 分页查看对话历史（新版） |
@@ -175,7 +175,7 @@ SSE 事件：
 | `error` | 流式异常 | `{message: "..."}` |
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/agents/unified/stream \
+curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"message": "我最近好焦虑，心情很差..."}'
@@ -425,7 +425,7 @@ npm run build
 ├── 📂 api/                                 # 🌐 API 接口
 │   └── 📂 v1/
 │       ├── 📄 __init__.py
-│       ├── 📄 agents_unified.py            # POST /api/v1/agents/unified/stream
+│       ├── 📄 agents_unified.py            # POST /api/v1/unified/stream
 │       └── 📄 conversations.py             # GET/PATCH/DELETE /api/v1/conversations/...
 │
 ├── 📂 services/                            # 📦 业务服务（新版）

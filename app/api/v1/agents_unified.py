@@ -29,7 +29,7 @@ from langweave.registry import AgentRegistry
 from langweave.web.deps import get_registry
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix=f"{API_V1_PREFIX}/agents", tags=["agents-unified"])
+router = APIRouter(prefix=f"{API_V1_PREFIX}", tags=["agents-unified"])
 
 
 # ------------------------------------------------------------------
