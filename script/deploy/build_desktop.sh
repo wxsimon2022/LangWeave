@@ -73,11 +73,4 @@ if [ -d "$DESKTOP_DIR/release" ]; then
   ls -lh "$RELEASE_DIR/frontend/desktop/" 2>/dev/null || true
 fi
 
-# --- Restore package.json to prevent dirty git state ---
-node -e "
-  const pkg = require('$DESKTOP_DIR/package.json');
-  pkg.version = '1.0.0';
-  require('fs').writeFileSync('$DESKTOP_DIR/package.json', JSON.stringify(pkg, null, 2) + '\n');
-"
-
 echo "[desktop] Done."

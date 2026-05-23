@@ -79,3 +79,13 @@ def clear_active_session_sync(user_id: int) -> bool:
     key = f"{SESSION_PREFIX}{user_id}"
     client.delete(key)
     return True
+
+
+def set_active_session_sync(user_id: int, jti: str) -> bool:
+    """Sync: store ``jti`` as the active session for ``user_id``."""
+    client = get_sync_redis()
+    if client is None:
+        return False
+    key = f"{SESSION_PREFIX}{user_id}"
+    client.set(key, jti)
+    return True

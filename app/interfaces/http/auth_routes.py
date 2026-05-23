@@ -24,7 +24,7 @@ from app.infrastructure.cache.anomaly import (
 )
 from app.infrastructure.cache.session import (
     clear_active_session_async,
-    set_active_session_async,
+    set_active_session_sync,
 )
 from app.infrastructure.cache.token_blacklist import blacklist_token_async
 from app.interfaces.http.deps import AuthServiceDep, CurrentUser
@@ -117,7 +117,7 @@ def refresh(
         new_access_token = create_access_token(user.id)
         # Extract jti from the new token and set as active session
         _, new_jti = decode_access_token_with_jti(new_access_token)
-        _run_async(set_active_session_async(user.id, new_jti))
+        set_active_session_sync(user.id, new_jti)
         return ApiResponse.ok(
             AuthTokenResponse(
                 access_token=new_access_token,
@@ -173,18 +173,4 @@ def _replace_active_session(response: AuthTokenResponse, _username: str) -> None
     Called synchronously from login/register routes.
     """
     _, jti = decode_access_token_with_jti(response.access_token)
-    _run_async(set_active_session_async(response.user.id, jti))
-
-
-def _run_async(coro):
-    """Run a single async coroutine from a sync context."""
-    import asyncio
-
-    try:
-        asyncio.run(coro)
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        try:
-            loop.run_until_complete(coro)
-        finally:
-            loop.close()
+    set_active_session_sync(response.user.id, jti)
