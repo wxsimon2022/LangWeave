@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { adminDeleteUser, adminListUsers, adminUpdatePassword, getCurrentUser, login, setToken } from "./api.js";
+import { adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, getCurrentUser, login, setToken } from "./api.js";
 
 // ===== Auth state =====
 const username = ref("");
@@ -21,6 +21,15 @@ const passwordTargetUser = ref(null);
 const newPassword = ref("");
 const passwordLoading = ref(false);
 const passwordError = ref("");
+
+// ===== Chat history views =====
+const chatViewUser = ref(null);          // user whose conversations we are browsing
+const conversations = ref([]);
+const convLoading = ref(false);
+const convError = ref("");
+const chatMessages = ref([]);
+const chatTitle = ref("");
+const msgLoading = ref(false);
 
 // ===== Auth =====
 const canLogin = computed(() => username.value.trim().length >= 3 && password.value.trim().length >= 6);
@@ -106,6 +115,57 @@ async function handleUpdatePassword() {
   } finally {
     passwordLoading.value = false;
   }
+}
+
+// ===== Chat history =====
+function openChatView(user) {
+  chatViewUser.value = user;
+  conversations.value = [];
+  chatMessages.value = [];
+  chatTitle.value = "";
+  convError.value = "";
+  loadConversations(user.id);
+}
+
+function closeChatView() {
+  chatViewUser.value = null;
+  conversations.value = [];
+  chatMessages.value = [];
+  chatTitle.value = "";
+  convError.value = "";
+}
+
+async function loadConversations(userId) {
+  convLoading.value = true;
+  convError.value = "";
+  try {
+    const resp = await adminListConversations(userId);
+    conversations.value = resp?.data?.conversations || [];
+  } catch (error) {
+    convError.value = error.message;
+  } finally {
+    convLoading.value = false;
+  }
+}
+
+async function openConversation(conv) {
+  if (!chatViewUser.value) return;
+  msgLoading.value = true;
+  chatTitle.value = conv.title;
+  chatMessages.value = [];
+  try {
+    const resp = await adminGetConversationMessages(chatViewUser.value.id, conv.id);
+    chatMessages.value = resp?.data?.messages || [];
+  } catch (error) {
+    convError.value = error.message;
+  } finally {
+    msgLoading.value = false;
+  }
+}
+
+function backToConversations() {
+  chatMessages.value = [];
+  chatTitle.value = "";
 }
 
 function formatDate(dateStr) {
@@ -206,6 +266,14 @@ onMounted(restoreSession);
                 <button
                   class="btn ghost"
                   type="button"
+                  @click="openChatView(u)"
+                  title="查看聊天记录"
+                >
+                  聊天
+                </button>
+                <button
+                  class="btn ghost"
+                  type="button"
                   @click="openPasswordModal(u)"
                   title="修改密码"
                 >
@@ -258,6 +326,60 @@ onMounted(restoreSession);
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Chat History View -->
+      <Teleport to="body">
+        <div v-if="chatViewUser" class="modal-overlay" @click.self="closeChatView">
+          <div class="modal-card chat-card">
+            <!-- Header -->
+            <div class="chat-header">
+              <button class="btn ghost" type="button" @click="closeChatView">← 返回</button>
+              <span class="chat-header-title">
+                {{ chatTitle || chatViewUser?.username + ' 的对话' }}
+              </span>
+              <span></span>
+            </div>
+
+            <!-- Messages view -->
+            <div v-if="chatMessages.length > 0" class="chat-messages">
+              <div class="chat-msg-bar">
+                <button class="btn ghost" type="button" @click="backToConversations">← 所有对话</button>
+                <span class="chat-msg-title">{{ chatTitle }}</span>
+              </div>
+              <div class="chat-msg-list">
+                <div
+                  v-for="m in chatMessages"
+                  :key="m.id"
+                  class="chat-msg"
+                  :class="{ user: m.role === 'user', assistant: m.role === 'assistant' }"
+                >
+                  <div class="chat-msg-label">{{ m.role === 'user' ? '用户' : '助手' }}</div>
+                  <div class="chat-msg-content">{{ m.content }}</div>
+                  <div class="chat-msg-time">{{ formatDate(m.created_at) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Conversations list -->
+            <div v-else class="chat-conv-list">
+              <div v-if="convLoading" class="load-hint">加载中...</div>
+              <div v-else-if="convError" class="msg-bar error">{{ convError }}</div>
+              <div v-else-if="conversations.length === 0" class="load-hint">暂无对话</div>
+              <div
+                v-for="conv in conversations"
+                :key="conv.id"
+                class="chat-conv-item"
+                @click="openConversation(conv)"
+              >
+                <div class="chat-conv-title">{{ conv.title }}</div>
+                <div class="chat-conv-meta">
+                  {{ conv.message_count }} 条消息 · {{ formatDate(conv.updated_at) }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Teleport>
@@ -491,6 +613,123 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+/* ===== Chat History ===== */
+.chat-card {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 0 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-header-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0.5rem;
+}
+
+.chat-conv-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.chat-conv-item {
+  padding: 0.7rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chat-conv-item:hover { background: rgba(0,0,0,0.03); }
+
+.chat-conv-title {
+  font-size: 0.9rem;
+  font-weight: 550;
+  margin-bottom: 0.2rem;
+}
+
+.chat-conv-meta {
+  font-size: 0.75rem;
+  color: var(--fg3);
+}
+
+.chat-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-msg-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0 1.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-msg-title {
+  font-size: 0.85rem;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-msg-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1.25rem;
+}
+
+.chat-msg {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.chat-msg.user {
+  border-left: 3px solid var(--accent);
+}
+
+.chat-msg.assistant {
+  border-left: 3px solid #4a9eff;
+}
+
+.chat-msg-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--fg2);
+  margin-bottom: 0.25rem;
+}
+
+.chat-msg-content {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-msg-time {
+  font-size: 0.68rem;
+  color: var(--fg3);
+  margin-top: 0.3rem;
 }
 
 /* ===== Mobile ===== */

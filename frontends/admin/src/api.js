@@ -73,3 +73,11 @@ export function adminUpdatePassword(userId, newPassword) {
     body: JSON.stringify({ new_password: newPassword }),
   });
 }
+
+export function adminListConversations(userId) {
+  return request(`/api/v1/admin/users/${userId}/conversations`, { method: "GET" });
+}
+
+export function adminGetConversationMessages(userId, conversationId) {
+  return request(`/api/v1/admin/users/${userId}/conversations/${conversationId}`, { method: "GET" });
+}

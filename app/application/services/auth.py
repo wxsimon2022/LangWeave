@@ -10,8 +10,15 @@ from app.application.security import (
     hash_password,
     verify_password,
 )
-from app.infrastructure.persistence.models import Conversation, User
-from app.schemas.admin import AdminUserItem, AdminUserListResponse
+from app.infrastructure.persistence.models import ChatMessage, Conversation, User
+from app.schemas.admin import (
+    AdminConversationItem,
+    AdminConversationListResponse,
+    AdminConversationMessagesResponse,
+    AdminMessageItem,
+    AdminUserItem,
+    AdminUserListResponse,
+)
 from app.schemas.auth import AuthTokenResponse, UserProfile
 
 
@@ -112,6 +119,76 @@ class AuthService:
         user.password_hash = hash_password(new_password.strip())
         self._db.commit()
         return user.id, user.username
+
+    def list_conversations_for_user(self, user_id: int) -> AdminConversationListResponse:
+        """Return all conversations for a given user, newest first."""
+        user = self._db.get(User, user_id)
+        if user is None:
+            msg = f"User {user_id} not found"
+            raise ValueError(msg)
+
+        stmt = (
+            select(Conversation)
+            .where(Conversation.user_id == user_id)
+            .order_by(Conversation.updated_at.desc())
+        )
+        convs = list(self._db.scalars(stmt).all())
+
+        items = [
+            AdminConversationItem(
+                id=c.id,
+                user_id=c.user_id,
+                username=user.username,
+                title=c.title,
+                agent_name=c.agent_name,
+                message_count=self._db.scalar(
+                    select(func.count(ChatMessage.id)).where(
+                        ChatMessage.conversation_id == c.id
+                    )
+                ) or 0,
+                created_at=c.created_at,
+                updated_at=c.updated_at,
+            )
+            for c in convs
+        ]
+        return AdminConversationListResponse(conversations=items, total_count=len(items))
+
+    def get_conversation_messages(
+        self, user_id: int, conversation_id: int
+    ) -> AdminConversationMessagesResponse:
+        """Return all messages of a conversation, ensuring it belongs to the user."""
+        conv = self._db.scalar(
+            select(Conversation).where(
+                Conversation.id == conversation_id,
+                Conversation.user_id == user_id,
+            )
+        )
+        if conv is None:
+            msg = f"Conversation {conversation_id} not found for user {user_id}"
+            raise ValueError(msg)
+
+        msgs_stmt = (
+            select(ChatMessage)
+            .where(ChatMessage.conversation_id == conversation_id)
+            .order_by(ChatMessage.id)
+        )
+        msgs = list(self._db.scalars(msgs_stmt).all())
+
+        items = [
+            AdminMessageItem(
+                id=m.id,
+                role=m.role,
+                content=m.content,
+                created_at=m.created_at,
+            )
+            for m in msgs
+        ]
+        return AdminConversationMessagesResponse(
+            conversation_id=conv.id,
+            title=conv.title,
+            messages=items,
+            total_count=len(items),
+        )
 
     # ------------------------------------------------------------------
     # Internal

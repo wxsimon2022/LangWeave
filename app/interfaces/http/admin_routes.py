@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 
 from app.interfaces.http.deps import AuthServiceDep, CurrentUser
 from app.schemas.admin import (
+    AdminConversationListResponse,
+    AdminConversationMessagesResponse,
     AdminUpdatePasswordRequest,
     AdminUpdatePasswordResponse,
     AdminUserDeleteResponse,
@@ -59,6 +61,41 @@ async def delete_user(
             ),
             message=f"用户 {deleted_username} 已删除",
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
+    "/users/{user_id}/conversations",
+    response_model=ApiResponse[AdminConversationListResponse],
+    summary="查看指定用户的所有对话列表（仅管理员）",
+)
+async def list_user_conversations(
+    user_id: int,
+    current_user: CurrentUser,
+    auth_service: AuthServiceDep,
+) -> ApiResponse[AdminConversationListResponse]:
+    try:
+        data = auth_service.list_conversations_for_user(user_id)
+        return ApiResponse.ok(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
+    "/users/{user_id}/conversations/{conversation_id}",
+    response_model=ApiResponse[AdminConversationMessagesResponse],
+    summary="查看指定对话的所有消息（仅管理员）",
+)
+async def get_user_conversation_messages(
+    user_id: int,
+    conversation_id: int,
+    current_user: CurrentUser,
+    auth_service: AuthServiceDep,
+) -> ApiResponse[AdminConversationMessagesResponse]:
+    try:
+        data = auth_service.get_conversation_messages(user_id, conversation_id)
+        return ApiResponse.ok(data)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

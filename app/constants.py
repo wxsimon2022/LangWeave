@@ -14,7 +14,6 @@ ASSISTANT_DESCRIPTION = "General assistant with calculator and clock tools"
 EMOTIONAL_DESCRIPTION = "情感陪伴与倾听，提供共情式对话支持（支持多轮记忆）"
 
 # Database
-SQLITE_FALLBACK_URL = "sqlite:///./langweave.db"
 DEFAULT_AGENT_NAME = EMOTIONAL_AGENT
 
 # JWT
