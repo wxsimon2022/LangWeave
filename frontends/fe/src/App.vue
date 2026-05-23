@@ -514,7 +514,7 @@ onMounted(() => {
           {{ authMode === "login" ? "没有账号？去注册" : "已有账号？去登录" }}
         </button>
 
-        <a href="/landing" class="link-btn landing-link" target="_blank">📄 宣传页</a>
+        <a href="/" class="link-btn landing-link" target="_blank">📄 宣传页</a>
       </div>
     </main>
 
