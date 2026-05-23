@@ -1,5 +1,0 @@
-"""Compatibility module for legacy agent registration imports."""
-
-from app.domain.agents.registry import register_agents
-
-__all__ = ["register_agents"]

@@ -1,13 +1,14 @@
-"""Research Analysis Agent V2 — emotional companion (research analysis).
+"""Research Analysis Agent V2 — emotional companion dialogue agent.
 
-Migrated from ``app.domain.agents.emotional``.
+This is the primary emotional-support agent for the application.
+It provides empathetic, non-judgmental conversation.
 """
 from __future__ import annotations
 
 from langweave import Agent, AgentBuilder
 from langweave.config import AgentSettings
 
-from app.domain.agents.memory import with_conversation_memory
+from app.agents.memory import with_conversation_memory
 from app.constants import EMOTIONAL_AGENT, EMOTIONAL_DESCRIPTION
 
 RESEARCH_SYSTEM_PROMPT = """

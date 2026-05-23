@@ -1,1 +1,1 @@
-"""Agent definitions — research, hewa, intent, fallback, memory."""
+"""Agent implementations — research, hewa, intent, fallback, memory."""
