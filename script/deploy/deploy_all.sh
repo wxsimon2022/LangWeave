@@ -124,6 +124,10 @@ if [[ -f '$REMOTE_CURRENT_DIR/config/.env.prod' ]]; then
   echo 'Synced .env.prod to shared for reference.'
 fi
 
+# 每次部署强制同步 config/.env.prod 到 shared/.env
+# 确保新增的环境变量（如 LANGWEAVE_REDIS_URL）被正确设置
+cp '$REMOTE_CURRENT_DIR/config/.env.prod' '$REMOTE_ENV_FILE' 2>/dev/null || true
+
 cd '$REMOTE_CURRENT_DIR'
 ln -sfn '$REMOTE_ENV_FILE' .env
 

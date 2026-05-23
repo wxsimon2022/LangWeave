@@ -61,6 +61,7 @@ function openReleaseUrl() {
 let heartbeatTimer = null;
 
 function startHeartbeat() {
+  console.log("[heartbeat] Starting heartbeat...");
   stopHeartbeat();
   sendHeartbeat();
   heartbeatTimer = setInterval(sendHeartbeat, 30000); // every 30s
@@ -529,6 +530,7 @@ function autoResizeTextarea(event) {
 }
 
 onMounted(() => {
+  console.log("[app] Mounted, starting initialization...");
   isMobile.value = window.innerWidth <= 640;
   loadHealth();
   restoreSession();
