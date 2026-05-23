@@ -47,18 +47,19 @@ flowchart TB
 用户消息
    │
    ▼
-┌─────────────────────────────┐
-│  POST /api/v1/chat/stream   │  ← 统一入口（SSE 流式）
-│    │                         │
-│    ▼                         │
-│  IntentService.recognize()   │  ← intent Agent 分类意图
-│    │                         │
-│    ├─ emotional_chat ───────→ emotional Agent （情感陪伴）
-│    ├─ general_chat ─────────→ assistant Agent （通用助手）
-│    ├─ order_query ──────────→ assistant Agent （订单查询）
-│    ├─ calculation ──────────→ assistant Agent （数学计算）
-│    └─ unknown ──────────────→ assistant Agent （默认兜底）
-└─────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│  POST /api/v1/agents/unified/stream           │  ← 统一入口（SSE 流式）
+│  POST /api/v1/chat/stream                     │  ← 旧版入口（向后兼容）
+│    │                                           │
+│    ▼                                           │
+│  IntentService.recognize()                     │  ← intent Agent 分类意图
+│    │                                           │
+│    ├─ emotional_chat ───────→ research_agent   │  （情感陪伴）
+│    ├─ general_chat ─────────→ general_agent    │  （通用助手）
+│    ├─ order_query ──────────→ general_agent    │  （订单查询）
+│    ├─ calculation ──────────→ general_agent    │  （数学计算）
+│    └─ unknown ──────────────→ general_agent    │  （默认兜底）
+└───────────────────────────────────────────────┘
 ```
 
 **关键设计**：
@@ -156,12 +157,13 @@ LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/v1/chat/stream` | **入口 Agent** — SSE 流式，先识别意图后路由到对应 Agent |
-| GET | `/api/v1/chat/conversations` | 列出所有对话（跨 Agent 类型） |
-| GET | `/api/v1/chat/history` | 分页查看对话历史 |
-| DELETE | `/api/v1/chat/history` | 清空对话历史 |
-| DELETE | `/api/v1/chat/conversations/{id}` | 删除整个对话 |
-| PATCH | `/api/v1/chat/conversations/{id}` | 修改对话名称 |
+| POST | `/api/v1/agents/unified/stream` | **入口 Agent（新版）** — SSE 流式，先识别意图后路由 |
+| POST | `/api/v1/chat/stream` | **入口 Agent（旧版）** — 同上，向后兼容 |
+| GET | `/api/v1/conversations` | 列出所有对话（新版） |
+| GET | `/api/v1/conversations/{id}/history` | 分页查看对话历史（新版） |
+| DELETE | `/api/v1/conversations/{id}/history` | 清空对话历史（新版） |
+| DELETE | `/api/v1/conversations/{id}` | 删除整个对话（新版） |
+| PATCH | `/api/v1/conversations/{id}` | 修改对话名称（新版） |
 
 SSE 事件：
 
@@ -173,7 +175,7 @@ SSE 事件：
 | `error` | 流式异常 | `{message: "..."}` |
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/chat/stream \
+curl -X POST http://127.0.0.1:8000/api/v1/agents/unified/stream \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"message": "我最近好焦虑，心情很差..."}'
@@ -237,7 +239,6 @@ result = await service.recognize_and_chat("查订单10001")  # 含 reply
 | POST | `/api/v1/auth/logout` | 登出（撤销 token） |
 | POST | `/api/v1/auth/refresh` | 刷新 token |
 | GET | `/api/v1/auth/me` | 获取当前用户 |
-| GET | `/api/v1/auth/me/with-admin` | 获取用户信息（含 is_admin 判断） |
 
 ### Agent 框架接口（免鉴权）
 
@@ -290,7 +291,6 @@ npm run dev
 ```
 
 - 默认地址：`http://127.0.0.1:5173`
-- 与后端交互的聊天入口为 `/api/v1/chat/stream`（入口 Agent）
 
 ### 管理后台（Vue 3 + Vite）
 
@@ -367,12 +367,12 @@ npm run build
 
 ### Agent 列表
 
-| Agent | 名称 | 说明 |
-|-------|------|------|
-| `intent` | 意图识别 Agent | 结构化输出，分类用户意图，路由到 specialist |
-| `emotional` | 情感陪伴 Agent | 共情式对话，支持多轮记忆（checkpointer） |
-| `assistant` | 通用助手 Agent | 含计算器、时钟工具，支持工具调用 |
-| `fallback` | 兜底 Agent | 当目标 Agent 不存在时使用 |
+| Agent 文件 | 注册名称 | 说明 |
+|-----------|----------|------|
+| `agents/intent_agent.py` | `intent` | 意图分类 Agent，结构化输出，路由到 specialist |
+| `agents/research_agent_v2.py` | `emotional` | 情感陪伴 Agent（小暖），共情式对话 |
+| `agents/general_agent_v2.py` | `assistant` | 通用助手 Agent，含计算器、时钟工具 |
+| `agents/fallback_agent.py` | (fallback) | 兜底 Agent，模型不可用时的降级响应 |
 
 ### 单设备登录
 
@@ -393,91 +393,250 @@ npm run build
 ## 项目结构
 
 ```
-langweave/                        # 框架层（通用 Agent 能力）
-  agent.py                        # Agent 包装器
-  builder.py                      # AgentBuilder 流式构建器
-  config.py                       # 配置加载
-  registry.py                     # AgentRegistry
-  models/                         # 自定义模型封装（DeepSeek 等）
-  middleware/                     # 中间件（Logging 等）
-  tools/                          # 框架内置工具（calculator）
-  orchestration/                  # 编排模式（Supervisor）
-  memory.py                       # 多轮记忆管理
-  web/                            # 通用 HTTP API
-    app.py                        # create_app 工厂
-    deps.py                       # FastAPI 依赖注入
-    routes.py                     # 框架路由
-    response.py                   # 统一响应体
-    serialize.py                  # JSON 序列化
-    openapi.py                    # OpenAPI / Swagger 配置
-    tree_docs.py                  # 目录树文档 UI
+📦 langweave/                               # 框架层（通用 Agent 能力）
+  📄 agent.py                               # Agent 包装器
+  📄 builder.py                             # AgentBuilder 流式构建器
+  📄 config.py                              # 配置加载
+  📄 registry.py                            # AgentRegistry
+  📂 models/                                # 自定义模型封装（DeepSeek 等）
+  📂 middleware/                            # 中间件（Logging 等）
+  📂 tools/                                 # 框架内置工具（calculator）
+  📂 orchestration/                         # 编排模式（Supervisor）
+  📄 memory.py                              # 多轮记忆管理
+  📂 web/                                   # 通用 HTTP API
+    📄 app.py                               # create_app 工厂
+    📄 deps.py                              # FastAPI 依赖注入
+    📄 routes.py                            # 框架路由
+    📄 response.py                          # 统一响应体
+    📄 serialize.py                         # JSON 序列化
+    📄 openapi.py                           # OpenAPI / Swagger 配置
+    📄 tree_docs.py                         # 目录树文档 UI
 
-app/                              # 业务层
-  constants.py                    # 共享常量
-  exceptions.py                   # 自定义异常
-  utils.py                        # 工具函数
-  logging.py                      # 日志配置
-  types.py                        # 类型别名
+📦 app/                                     # 业务层
+│
+├── 📂 agents/                              # 🤖 Agent 实现
+│   ├── 📄 __init__.py
+│   ├── 📄 research_agent_v2.py             # 研究分析 / 情感陪伴 Agent V2（小暖）
+│   ├── 📄 general_agent_v2.py              # 通用助手 Agent V2（计算器、时钟）
+│   ├── 📄 intent_agent.py                  # 意图识别 Agent（结构化输出）
+│   ├── 📄 fallback_agent.py                # 兜底 Agent（模型不可用降级）
+│   └── 📄 memory.py                        # 对话记忆辅助函数（checkpointer 注入）
+│
+├── 📂 api/                                 # 🌐 API 接口
+│   └── 📂 v1/
+│       ├── 📄 __init__.py
+│       ├── 📄 agents_unified.py            # POST /api/v1/agents/unified/stream
+│       └── 📄 conversations.py             # GET/PATCH/DELETE /api/v1/conversations/...
+│
+├── 📂 services/                            # 📦 业务服务（新版）
+│   ├── 📄 __init__.py
+│   ├── 📄 agent_application_service.py     # Agent 应用管理（包装 ChatService）
+│   ├── 📄 conversation_service.py          # 对话管理（包装 ChatService）
+│   ├── 📄 conversation_persistence.py      # 对话持久化（DB 操作）
+│   └── 📄 tool_service.py                  # 工具管理
+│
+├── 📂 core/                                # 🔧 核心基础设施
+│   ├── 📂 agent/                           # Agent 核心
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 base_agent.py                # Agent 基类
+│   │   ├── 📄 agent_mapping.py             # Agent 映射表（intent → agent）
+│   │   ├── 📄 agent_registry.py            # Agent 注册器
+│   │   ├── 📄 single_agent.py              # 单 Agent 调用
+│   │   └── 📄 multi_agent.py               # 多 Agent 编排
+│   │
+│   ├── 📂 llm/                             # 🧠 LLM 管理
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 llm_factory.py               # LLM 工厂（支持多提供商）
+│   │   └── 📄 README.md                    # LLM 使用文档
+│   │
+│   ├── 📂 tools/                           # 🛠️ 工具系统
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 base_tool.py                 # 工具基类
+│   │   ├── 📄 tool_registry.py             # 工具注册表
+│   │   ├── 📂 builtin/                     # 内置工具集
+│   │   │   ├── 📄 __init__.py
+│   │   │   └── 📂 data/
+│   │   │       ├── 📄 __init__.py
+│   │   │       └── 📄 calculator.py        # 计算器工具
+│   │   └── 📂 mcp/                         # MCP 工具集成
+│   │       └── 📄 __init__.py
+│   │
+│   ├── 📂 mcp/                             # 🔌 MCP 协议集成
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 mcp_manager.py               # MCP 服务管理器
+│   │   ├── 📄 mcp_client.py                # MCP 客户端
+│   │   ├── 📄 mcp_connection_pool.py       # 连接池管理
+│   │   ├── 📄 mcp_tool_wrapper.py          # 工具包装器
+│   │   └── 📄 mcp_server_config.py         # 服务配置
+│   │
+│   ├── 📂 memory/                          # 🧩 记忆管理
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 conversation_memory.py       # 对话记忆管理
+│   │   └── 📄 memory_store.py              # 记忆存储
+│   │
+│   ├── 📂 monitoring/                      # 📊 监控系统
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 langfuse_integration.py      # Langfuse 集成
+│   │   ├── 📄 langfuse_multitenancy.py     # 多租户监控
+│   │   ├── 📄 metrics.py                   # 指标收集
+│   │   └── 📄 performance_tracker.py       # 性能追踪
+│   │
+│   ├── 📂 rag/                             # 📚 RAG 系统
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 embeddings.py                # 向量嵌入
+│   │   └── 📄 retriever.py                 # 检索器
+│   │
+│   ├── 📄 __init__.py
+│   ├── 📄 database.py                      # 数据库连接（re-export）
+│   ├── 📄 cache.py                         # 缓存管理（re-export）
+│   ├── 📄 security.py                      # 安全管理（re-export）
+│   └── 📄 app.py                           # 应用初始化（create_app）
+│
+├── 📂 models/                              # 📋 ORM 数据模型
+│   ├── 📄 __init__.py
+│   ├── 📄 user.py                          # 用户模型（c_users）
+│   ├── 📄 conversation.py                  # 对话模型（c_conversations）
+│   └── 📄 message.py                       # 消息模型（c_messages）
+│
+├── 📂 middleware/                          # 🚦 HTTP 中间件
+│   ├── 📄 __init__.py
+│   ├── 📄 error_handler.py                 # 全局错误处理
+│   ├── 📄 request_logging.py               # 请求日志
+│   └── 📄 rate_limit.py                    # 限流控制
+│
+├── 📂 helpers/                             # 🔨 工具函数
+│   ├── 📄 __init__.py
+│   ├── 📄 logger.py                        # 日志工具
+│   ├── 📄 exceptions.py                    # 异常定义
+│   ├── 📄 validators.py                    # 验证器
+│   ├── 📄 formatters.py                    # 格式化工具
+│   └── 📄 prompt.py                        # 提示词工具
+│
+├── 📂 prompts/                             # 💭 提示词管理
+│   ├── 📄 __init__.py
+│   ├── 📄 prompt_manager.py                # 提示词管理器
+│   ├── 📄 constants.py                     # 提示词常量
+│   ├── 📂 agents/                          # Agent 专用提示词
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 research_agent.py            # 研究助手提示词
+│   │   └── 📄 task_agent.py                # 任务助手提示词
+│   └── 📂 templates/                       # Jinja2 模板
+│       ├── 📄 __init__.py
+│       ├── 📄 base_agent.jinja2            # Agent 基础模板
+│       ├── 📄 tool_usage.jinja2            # 工具使用模板
+│       └── 📄 error_handling.jinja2        # 错误处理模板
+│
+├── 📂 tasks/                               # ⚡ 异步任务
+│   ├── 📄 __init__.py
+│   └── 📄 celery_app.py                    # Celery 配置
+│
+├── 📄 config.py                            # ⚙️ 全局配置
+│
+├── 📂 domain/                              # 📦 领域层（保持向后兼容）
+│   ├── 📂 agents/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 registry.py                  # Agent 注册器（引用 app/agents）
+│   │   ├── 📄 intent.py
+│   │   ├── 📄 emotional.py
+│   │   ├── 📄 assistant.py
+│   │   ├── 📄 fallback.py
+│   │   └── 📄 memory.py
+│   └── 📂 tools/
+│       ├── 📄 __init__.py
+│       ├── 📄 catalog.py                   # 工具组合
+│       └── 📄 order.py                     # 订单查询工具
+│
+├── 📂 application/                         # 📦 应用服务层（保持向后兼容）
+│   ├── 📄 __init__.py
+│   ├── 📄 security.py                      # JWT、密码哈希、HMAC
+│   └── 📂 services/
+│       ├── 📄 __init__.py
+│       ├── 📄 auth.py                      # 鉴权服务
+│       ├── 📄 chat.py                      # 聊天服务（入口 Agent 路由）
+│       ├── 📄 emotional_chat.py            # 情感聊天服务
+│       ├── 📄 intent.py                    # 意图识别服务
+│       └── 📄 session.py                   # 会话管理服务
+│
+├── 📂 infrastructure/                      # 📦 基础设施层（保持向后兼容）
+│   ├── 📄 __init__.py
+│   ├── 📂 cache/                           # Redis 缓存
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 heartbear.py                 # 用户心跳
+│   │   ├── 📄 dau.py                       # 日活统计（HyperLogLog）
+│   │   ├── 📄 session.py                   # 单设备登录
+│   │   ├── 📄 token_blacklist.py           # 令牌黑名单
+│   │   └── 📄 anomaly.py                   # 异常检测
+│   └── 📂 persistence/                     # 数据库持久化
+│       ├── 📄 __init__.py
+│       ├── 📄 database.py                  # 数据库连接
+│       └── 📄 models.py                    # ORM 模型定义
+│
+├── 📂 interfaces/http/                     # 🌐 HTTP 路由（保持向后兼容）
+│   ├── 📄 __init__.py
+│   ├── 📄 router.py                        # 路由聚合（含新版 + 旧版）
+│   ├── 📄 deps.py                          # 依赖注入
+│   ├── 📄 auth_routes.py                   # 鉴权路由
+│   ├── 📄 chat_routes.py                   # 入口 Agent 聊天路由
+│   ├── 📄 emotional_chat_routes.py         # 情感聊天路由
+│   ├── 📄 intent_routes.py                 # 意图识别路由
+│   ├── 📄 heartbear_routes.py              # 心跳路由
+│   ├── 📄 admin_routes.py                  # 管理后台路由
+│   └── 📄 session_routes.py                # 会话记忆路由
+│
+├── 📂 schemas/                             # 📄 Pydantic 数据模式
+│   ├── 📄 __init__.py
+│   ├── 📄 auth.py
+│   ├── 📄 emotional_chat.py
+│   ├── 📄 intent.py
+│   ├── 📄 admin.py
+│   └── 📄 session.py
+│
+├── 📄 __init__.py
+├── 📄 constants.py                         # 共享常量
+├── 📄 exceptions.py                        # 自定义异常
+├── 📄 logging.py                           # 日志配置
+├── 📄 types.py                             # 类型别名
+├── 📄 utils.py                             # 工具函数
+└── 📄 bootstrap.py                         # 业务启动（DB 初始化、Agent 注册）
 
-  domain/
-    agents/
-      registry.py                 # 业务 Agent 注册
-      intent.py                   # 意图分类 Agent
-      emotional.py                # 情感陪伴 Agent
-      assistant.py                # 通用助手 Agent
-      fallback.py                 # 兜底 Agent
-      memory.py                   # 记忆模式 Agent
-    tools/
-      catalog.py                  # 业务工具：catalog 查询
-      order.py                    # 业务工具：订单查询
+📦 config/                                  # 📝 配置文件
+│   ├── 📄 mcp_servers.yaml                 # MCP 服务配置
+│   ├── 📄 prompts.yaml                     # 提示词配置
+│   └── 📄 README.md                        # 配置说明
 
-  application/
-    security.py                   # JWT 生成/验证、密码哈希
-    services/
-      auth.py                     # 鉴权服务
-      chat.py                     # 聊天服务（入口 Agent 路由）
-      emotional_chat.py           # 情感聊天服务
-      intent.py                   # 意图识别服务
-      session.py                  # 会话管理服务
+📦 migrations/                              # 💾 数据库迁移
+│   ├── 📄 000_insert_all_agents.sql
+│   ├── 📄 001_create_agent_applications_simple.sql
+│   ├── 📄 001_insert_research_agent_v2.sql
+│   ├── 📄 002_insert_hewa_agent.sql
+│   └── 📄 README.md
 
-  infrastructure/
-    cache/
-      session.py                  # 单设备登录 session（Redis）
-      token_blacklist.py          # 令牌黑名单（Redis）
-      heartbeat.py                # 用户心跳（Redis Sorted Set）
-      dau.py                      # 日活统计（HyperLogLog）
-      anomaly.py                  # 异常检测（Redis）
-    persistence/
-      database.py                 # 数据库连接
-      models.py                   # ORM 模型（User, Conversation, ChatMessage）
+📦 docs/                                    # 📖 文档
+│   └── 📄 LLM使用指南.md
 
-  interfaces/
-    http/
-      router.py                   # 路由聚合
-      deps.py                     # 依赖注入（鉴权、服务）
-      auth_routes.py              # 鉴权路由
-      chat_routes.py              # 入口 Agent 聊天路由
-      emotional_chat_routes.py    # 情感聊天路由（旧版）
-      intent_routes.py            # 意图识别路由
-      heartbeat_routes.py         # 心跳路由
-      admin_routes.py             # 管理后台路由
-      session_routes.py           # 会话记忆路由
+📦 scripts/                                 # 🔧 脚本工具
+│   └── 📄 init_agents.py                   # Agent 初始化脚本
 
-  schemas/
-    auth.py                       # 鉴权数据结构
-    emotional_chat.py             # 聊天数据结构
-    intent.py                     # 意图识别数据结构
-    admin.py                      # 管理后台数据结构
-    session.py                    # 会话数据结构
+📦 storage/                                 # 💿 存储目录
+│   └── 📂 logs/
 
-main.py                           # 入口，仅组装框架 + 业务
-app/bootstrap.py                  # 业务启动：DB 初始化、Agent 注册
-script/deploy/                    # 部署脚本
-frontends/
-  fe/                             # 主聊天 SPA（Vue 3 + Vite）
-  admin/                          # 管理后台 SPA（Vue 3 + Vite）
-  desktop/                        # Electron 桌面端
-tests/                            # 测试
+📦 examples/                                # 📚 示例代码
+
+📦 frontends/                               # 🎨 前端
+│   ├── 📂 fe/                              # 主聊天 SPA（Vue 3 + Vite）
+│   ├── 📂 admin/                           # 管理后台 SPA（Vue 3 + Vite）
+│   └── 📂 desktop/                         # Electron 桌面端
+
+📦 script/deploy/                           # 🔧 部署脚本
+│   ├── 📄 deploy_all.sh                    # 全量部署
+│   ├── 📄 deploy_backend.sh                # 后端单独部署
+│   └── 📄 build_desktop.sh                 # 桌面端打包
+
+📄 main.py                                  # 🚀 ASGI 入口（uvicorn main:app）
+📄 tests/                                   # 🧪 测试
+📄 requirements.txt                         # 📦 Python 依赖
+📄 pyproject.toml                           # 项目元数据
+📄 .env.example                             # 🔐 环境变量模板
 ```
 
 ---
