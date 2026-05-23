@@ -19,6 +19,10 @@ REPO="wxsimon2022/LangWeave"
 
 cd "$ROOT_DIR"
 
+# 使用国内镜像加速 Electron / electron-builder 下载
+export ELECTRON_MIRROR="${ELECTRON_MIRROR:-https://npmmirror.com/mirrors/electron/}"
+export ELECTRON_BUILDER_BINARIES_MIRROR="${ELECTRON_BUILDER_BINARIES_MIRROR:-https://npmmirror.com/mirrors/electron-builder-binaries/}"
+
 # ---------------------------------------------------------------------------
 # Determine tag
 # ---------------------------------------------------------------------------

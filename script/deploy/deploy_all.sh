@@ -40,12 +40,19 @@ cd "$ADMIN_DIR"
 npm run build
 
 echo "[3/8] Building desktop client (macOS + Windows)"
-cd "$DESKTOP_DIR"
-if [ ! -d "node_modules" ]; then
-  npm install --ignore-scripts 2>&1 || true
+if [[ -z "${CI_SKIP_DESKTOP:-}" ]]; then
+  cd "$DESKTOP_DIR"
+  # 使用国内镜像加速 Electron 下载
+  export ELECTRON_MIRROR="${ELECTRON_MIRROR:-https://npmmirror.com/mirrors/electron/}"
+  export ELECTRON_BUILDER_BINARIES_MIRROR="${ELECTRON_BUILDER_BINARIES_MIRROR:-https://npmmirror.com/mirrors/electron-builder-binaries/}"
+  if [ ! -d "node_modules" ]; then
+    npm install 2>&1 || true
+  fi
+  # Build macOS (dmg) and Windows (exe)
+  npx electron-builder --mac --win --publish=never 2>&1 || echo "Desktop build skipped (see above for details)"
+else
+  echo "CI_SKIP_DESKTOP is set, skipping desktop build."
 fi
-# Build macOS (dmg) and Windows (exe) — skip Linux for now to keep build time reasonable
-npx electron-builder --mac --win --publish=never 2>&1 || echo "Desktop build skipped (see above for details)"
 
 echo "[4/8] Preparing release bundle"
 cd "$ROOT_DIR"
