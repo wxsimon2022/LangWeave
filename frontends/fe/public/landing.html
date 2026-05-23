@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>情感陪伴 — AI 情感聊天助手 | LangWeave</title>
+<meta name="description" content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。" />
+<meta name="keywords" content="AI 聊天,情感陪伴,情感助手,AI 情感支持,在线倾诉,智能聊天机器人,心理健康,LangWeave" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://chat.mybfs.cn/landing" />
+<meta property="og:title" content="情感陪伴 — AI 情感聊天助手 | LangWeave" />
+<meta property="og:description" content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。" />
+<meta property="og:image" content="https://chat.mybfs.cn/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="https://chat.mybfs.cn/landing" />
+<link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "LangWeave 情感陪伴",
+  "url": "https://chat.mybfs.cn/",
+  "description": "LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。",
+  "applicationCategory": "HealthApplication",
+  "operatingSystem": "All",
+  "author": { "@type": "Organization", "name": "LangWeave" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+}
+</script>
+<style>
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --accent: #d9735a;
+  --accent-hover: #c05e46;
+  --bg: #f5f2ef;
+  --fg: #2c1810;
+  --fg2: #6a5a4e;
+  --fg3: #a89484;
+  --surface: #fff;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+html { font-size: 16px; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ===== Layout ===== */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ===== Nav ===== */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0;
+}
+.logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.logo span { color: var(--accent); }
+.nav-links { display: flex; align-items: center; gap: 1.5rem; }
+.nav-links a {
+  font-size: 0.88rem;
+  color: var(--fg2);
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--fg); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+}
+.btn-outline:hover { background: var(--accent); color: #fff; }
+.btn-large { padding: 0.85rem 2rem; font-size: 1rem; }
+
+/* ===== Hero ===== */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  padding: 4rem 0 5rem;
+  min-height: 70vh;
+}
+.hero-content h1 {
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.2rem;
+}
+.hero-content h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--accent), #e8967a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: var(--fg2);
+  margin-bottom: 2rem;
+  max-width: 480px;
+}
+.hero-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.chat-preview {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+}
+.chat-preview::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217,115,90,0.12), transparent 70%);
+  pointer-events: none;
+}
+.preview-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.bubble {
+  max-width: 85%;
+  padding: 0.7rem 1rem;
+  border-radius: 1.2rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  animation: fadeIn 0.5s ease both;
+}
+.bubble:nth-child(1) { animation-delay: 0.1s; align-self: flex-start; }
+.bubble:nth-child(2) { animation-delay: 0.4s; align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 0.3rem; }
+.bubble:nth-child(3) { animation-delay: 0.7s; align-self: flex-start; background: #f7f2ed; border-bottom-left-radius: 0.3rem; }
+.bubble:nth-child(4) { animation-delay: 1s; align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 0.3rem; }
+
+.bubble.bot { background: #f7f2ed; border-bottom-left-radius: 0.3rem; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Features ===== */
+.features {
+  padding: 5rem 0;
+}
+.section-title {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.section-sub {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--fg2);
+  margin-bottom: 3rem;
+}
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+.feature-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 2rem 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+}
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+.feature-card h3 {
+  font-size: 1.05rem;
+  font-weight: 650;
+  margin-bottom: 0.5rem;
+}
+.feature-card p {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--fg2);
+}
+
+/* ===== How It Works ===== */
+.how-it-works {
+  padding: 5rem 0;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+}
+.step {
+  text-align: center;
+  padding: 0 1rem;
+}
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.step h3 { font-size: 1rem; font-weight: 650; margin-bottom: 0.5rem; }
+.step p { font-size: 0.85rem; color: var(--fg2); line-height: 1.6; }
+
+/* ===== CTA ===== */
+.cta {
+  text-align: center;
+  padding: 5rem 0;
+}
+.cta-card {
+  background: linear-gradient(135deg, var(--accent), #e8967a);
+  border-radius: 28px;
+  padding: 4rem 2rem;
+  color: #fff;
+}
+.cta-card h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+}
+.cta-card p {
+  font-size: 1.05rem;
+  opacity: 0.9;
+  margin-bottom: 2rem;
+}
+.cta-card .btn {
+  background: #fff;
+  color: var(--accent);
+  font-size: 1.05rem;
+  padding: 0.9rem 2.5rem;
+  border-radius: 12px;
+}
+.cta-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* ===== Footer ===== */
+footer {
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.82rem;
+  color: var(--fg3);
+  border-top: 1px solid #e0d6ce;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .page { padding: 0 1.25rem; }
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding: 2rem 0 3rem; text-align: center; }
+  .hero-sub { max-width: 100%; }
+  .hero-actions { justify-content: center; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; gap: 1.5rem; }
+  .cta-card { padding: 3rem 1.5rem; }
+  .cta-card h2 { font-size: 1.5rem; }
+  nav { flex-direction: column; gap: 0.8rem; }
+  .nav-links { gap: 1rem; }
+}
+
+@media (max-width: 480px) {
+  .hero { padding: 1.5rem 0 2rem; }
+  .hero-content h1 { font-size: 1.8rem; }
+  .hero-sub { font-size: 0.95rem; }
+  .section-title { font-size: 1.4rem; }
+  .chat-preview { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- Nav -->
+  <nav>
+    <div class="logo">Lang<span>Weave</span></div>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#how">使用方式</a>
+      <a href="/" class="btn btn-primary">开始聊天</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>你的私人 <em>情感陪伴</em><br/>AI 聊天助手</h1>
+      <p class="hero-sub">
+        一个温暖、共情的 AI 对话伙伴。随时倾诉，获得理解与陪伴。
+        所有对话自动保存，登录即可继续。
+      </p>
+      <div class="hero-actions">
+        <a href="/" class="btn btn-primary btn-large">开始免费体验</a>
+        <a href="#features" class="btn btn-outline btn-large">了解更多</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="chat-preview">
+        <div class="preview-msg">
+          <div class="bubble bot">最近心情不太好，总感觉很累……</div>
+          <div class="bubble">我在这里陪着你。愿意多和我说说吗？💛</div>
+          <div class="bubble bot">工作压力很大，晚上也睡不好</div>
+          <div class="bubble">听起来你最近确实承受了很多。慢慢说，我会一直在这里倾听。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Features -->
+<div class="page" id="features">
+  <section class="features">
+    <h2 class="section-title">为什么选择 LangWeave？</h2>
+    <p class="section-sub">温暖、智能、有记忆的 AI 陪伴体验</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🧠</span>
+        <h3>多轮记忆</h3>
+        <p>AI 能记住你之前的对话内容，让每一次交流都像老朋友一样自然连贯。</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">💬</span>
+        <h3>共情对话</h3>
+        <p>基于先进的语言模型，提供温暖、理解、不评判的情感回应。</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📝</span>
+        <h3>历史存档</h3>
+        <p>所有对话自动保存。随时翻阅过去的交流，回顾自己的心路历程。</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔄</span>
+        <h3>多对话管理</h3>
+        <p>支持创建多个对话主题，按话题分类，方便管理不同方向的交流。</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <h3>隐私安全</h3>
+        <p>用户认证系统保护你的对话隐私，只有你自己能查看聊天记录。</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>实时响应</h3>
+        <p>流式输出技术，AI 回复实时显示，无需等待完整内容生成。</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- How it works -->
+<div class="page" id="how">
+  <section class="how-it-works">
+    <h2 class="section-title">三步开始使用</h2>
+    <p class="section-sub">简单几步，开启你的 AI 陪伴之旅</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>注册账号</h3>
+        <p>使用用户名和密码注册，几秒钟即可完成。</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>开始对话</h3>
+        <p>点击新对话，输入你想说的话，AI 会温暖地回应你。</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>随时回来</h3>
+        <p>所有对话自动保存，下次登录即可继续之前的交流。</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CTA -->
+<div class="page">
+  <section class="cta">
+    <div class="cta-card">
+      <h2>现在就试试吧</h2>
+      <p>你的专属 AI 情感陪伴，随时在线等你聊天。</p>
+      <a href="/" class="btn">开始免费体验 →</a>
+    </div>
+  </section>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="page">
+    <p>&copy; 2026 LangWeave. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>
