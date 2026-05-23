@@ -166,15 +166,23 @@ if [[ -n "$LATEST_TAG" && "$LATEST_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; t
   NEXT_TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
 fi
 
-# 如果有未提交的改动，先全部暂存并提交
-if ! git diff --quiet --ignore-submodules HEAD 2>/dev/null; then
+echo "---"
+echo "Git: preparing commit and tag $NEXT_TAG"
+
+# 检查是否有未提交的改动
+if git status --porcelain 2>/dev/null | grep -q .; then
+  echo "Git: committing changes..."
   git add -A
-  git commit -m "chore: auto-commit before deploy $NEXT_TAG" || true
+  git commit -m "chore: auto-commit before deploy $NEXT_TAG"
 fi
 
+echo "Git: tagging $NEXT_TAG ..."
 git tag "$NEXT_TAG"
-git push origin main --tags 2>&1 || echo "Warning: git push failed (check remote)"
-echo "Tagged and pushed: $NEXT_TAG"
+
+echo "Git: pushing to origin main ..."
+git push origin master --tags 2>&1
+echo "Git: tagged and pushed $NEXT_TAG"
+echo "---"
 
 cat <<EOF
 One-click deploy finished.
