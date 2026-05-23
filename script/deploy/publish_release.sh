@@ -73,9 +73,9 @@ RELEASE_NOTES=$(cat <<EOF
 ## LangWeave Desktop $TAG
 
 📦 **Desktop Client**
-- macOS: \`LangWeave-$TAG.dmg\` (Intel & Apple Silicon)
-- Windows: \`LangWeave-$TAG.exe\` (64-bit installer)
-- Linux: \`LangWeave-$TAG.AppImage\`
+- [macOS](https://github.com/$REPO/releases/download/$TAG/LangWeave-mac.dmg)
+- [Windows](https://github.com/$REPO/releases/download/$TAG/LangWeave-win.exe)
+- [Linux](https://github.com/$REPO/releases/download/$TAG/LangWeave-linux.AppImage)
 
 🌐 **Web App**
 - [https://chat.mybfs.cn/](https://chat.mybfs.cn/)
