@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -37,9 +37,6 @@ class Conversation(Base):
     """Per-user persistent conversation."""
 
     __tablename__ = "conversations"
-    __table_args__ = (
-        UniqueConstraint("user_id", "agent_name", name="uq_conversation_user_agent"),
-    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
@@ -49,6 +46,11 @@ class Conversation(Base):
         default=lambda: str(uuid.uuid4()),
         unique=True,
         index=True,
+    )
+    title: Mapped[str] = mapped_column(
+        String(128),
+        default="新对话",
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -71,34 +71,47 @@ export function getCurrentUser() {
   });
 }
 
+// --- Conversations ---
+
+/** List all conversations for the current user. */
+export function listConversations() {
+  return request("/api/v1/emotional-chat/conversations", { method: "GET" });
+}
+
 /**
- * Fetch paginated emotional chat history.
+ * Fetch paginated chat history for a specific conversation.
  *
- * The backend returns messages from oldest to newest.
- * Use offset=0, limit=50 to get the most recent 50 messages,
- * offset=50, limit=50 to get the 50 before that, etc.
+ * Messages are returned oldest-first.
+ * Use offset=0, limit=50 for the most recent 50, etc.
  */
-export function fetchChatHistory(offset = 0, limit = 50) {
+export function fetchChatHistory(conversationId, offset = 0, limit = 50) {
   return request(
-    `/api/v1/emotional-chat/history?offset=${offset}&limit=${limit}`,
+    `/api/v1/emotional-chat/history?conversation_id=${conversationId}&offset=${offset}&limit=${limit}`,
     { method: "GET" },
   );
 }
 
-export function sendEmotionalMessage(message) {
+export function sendEmotionalMessage(message, conversationId) {
   return request("/api/v1/emotional-chat/messages", {
     method: "POST",
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, conversation_id: conversationId }),
   });
 }
 
-export function resetChatHistory() {
-  return request("/api/v1/emotional-chat/history", {
+export function resetChatHistory(conversationId) {
+  return request(
+    `/api/v1/emotional-chat/history?conversation_id=${conversationId}`,
+    { method: "DELETE" },
+  );
+}
+
+export function deleteConversation(conversationId) {
+  return request(`/api/v1/emotional-chat/conversations/${conversationId}`, {
     method: "DELETE",
   });
 }
 
-export async function streamEmotionalMessage(message, handlers = {}) {
+export async function streamEmotionalMessage(message, conversationId, handlers = {}) {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/api/v1/emotional-chat/stream`, {
     method: "POST",
@@ -106,7 +119,7 @@ export async function streamEmotionalMessage(message, handlers = {}) {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, conversation_id: conversationId }),
   });
 
   if (!response.ok || !response.body) {

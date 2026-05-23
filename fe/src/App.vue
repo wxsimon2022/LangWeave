@@ -5,9 +5,10 @@ import {
   checkHealth,
   fetchChatHistory,
   getCurrentUser,
+  listConversations,
   login,
   register,
-  resetChatHistory,
+  deleteConversation,
   setToken,
   streamEmotionalMessage,
 } from "./api/client";
@@ -17,25 +18,14 @@ const mdRenderer = (() => {
   const esc = (s) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // single-pass line renderer for common chat MD patterns
   function renderLine(text) {
     let html = esc(text);
-
-    // inline code `code`
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-    // bold **text** or __text__
     html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     html = html.replace(/(?<!_)__(.+?)__(?!_)/g, "<strong>$1</strong>");
-
-    // italic *text* or _text_
     html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
     html = html.replace(/(?<!_)_(.+?)_(?!_)/g, "<em>$1</em>");
-
-    // strikethrough ~~text~~
     html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
-
-    // autolink URLs
     html = html.replace(
       /https?:\/\/[^\s<]+/g,
       '<a href="$&" target="_blank" rel="noopener">$&</a>'
@@ -53,7 +43,6 @@ const mdRenderer = (() => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // fenced code block ```lang / ```
       if (/^```/.test(line)) {
         if (inCodeBlock) {
           html += `<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`;
@@ -71,39 +60,33 @@ const mdRenderer = (() => {
         continue;
       }
 
-      // horizontal rule
       if (/^---+\s*$/.test(line) || /^\*\*\*+\s*$/.test(line)) {
         html += "<hr>";
         continue;
       }
 
-      // headings (only h3/h4 for chat, to avoid overpowering)
       const hMatch = line.match(/^(#{1,4})\s+(.+)/);
       if (hMatch) {
-        const tag = "h" + Math.min(hMatch[1].length + 2, 4); // h3-h4
+        const tag = "h" + Math.min(hMatch[1].length + 2, 4);
         html += `<${tag}>${renderLine(hMatch[2])}</${tag}>`;
         continue;
       }
 
-      // unordered list item
       if (/^\s*[-*+]\s+/.test(line)) {
         html += `<li>${renderLine(line.replace(/^\s*[-*+]\s+/, ""))}</li>`;
         continue;
       }
 
-      // ordered list item
       if (/^\s*\d+\.\s+/.test(line)) {
         html += `<li>${renderLine(line.replace(/^\s*\d+\.\s+/, ""))}</li>`;
         continue;
       }
 
-      // blockquote
       if (/^\s*>\s?/.test(line)) {
         html += `<blockquote><p>${renderLine(line.replace(/^\s*>\s?/, ""))}</p></blockquote>`;
         continue;
       }
 
-      // paragraph — wrap inline rendered text in <p>
       if (line.trim()) {
         html += `<p>${renderLine(line)}</p>`;
       } else {
@@ -111,12 +94,10 @@ const mdRenderer = (() => {
       }
     }
 
-    // close unclosed code block
     if (inCodeBlock && codeBuf.length) {
       html += `<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`;
     }
 
-    // wrap consecutive <li> in <ul>
     html = html.replace(
       /(?:<li>.*?<\/li>\s*)+/g,
       (match) => `<ul>${match}</ul>`
@@ -126,6 +107,10 @@ const mdRenderer = (() => {
   };
 })();
 
+// ============================
+// State
+// ============================
+
 const input = ref("");
 const username = ref("");
 const password = ref("");
@@ -134,25 +119,35 @@ const authLoading = ref(false);
 const authenticated = ref(false);
 const currentUser = ref(null);
 const sending = ref(false);
-const threadId = ref("");
 const status = ref("正在连接后端...");
 const statusTone = ref("pending");
 const messages = ref([]);
-
-// --- Mobile detection ---
 const isMobile = ref(false);
 
-// --- 分页状态 ---
+// --- Conversation management ---
+const conversations = ref([]);           // list from the backend
+const activeConvId = ref(null);          // currently loaded conversation id
+const sidePanelOpen = ref(false);        // toggle conversation list
+
+// --- Pagination ---
 const PAGE_LIMIT = 50;
 const loadingOlder = ref(false);
 const hasMoreMessages = ref(false);
-const historyLoaded = ref(false); // true 后不再加载首页历史
+const historyLoaded = ref(false);
 const loadingOffset = ref(0);
+
+// ============================
+// Computed
+// ============================
 
 const canSend = computed(() => input.value.trim().length > 0 && !sending.value);
 const authButtonText = computed(() =>
   authLoading.value ? "提交中..." : authMode.value === "login" ? "登录" : "注册并登录"
 );
+
+// ============================
+// Message helpers
+// ============================
 
 function toUiMessage(message) {
   return {
@@ -161,17 +156,6 @@ function toUiMessage(message) {
     text: message.content,
     meta: message.created_at ? new Date(message.created_at).toLocaleString() : "",
   };
-}
-
-function resetWelcomeMessage(text = "我在这里。你可以慢慢说，最近让你最累的一件事是什么？") {
-  messages.value = [
-    {
-      id: "welcome",
-      role: "assistant",
-      text,
-      meta: "情感陪伴助手",
-    },
-  ];
 }
 
 function pushMessage(role, text, meta = "") {
@@ -183,34 +167,29 @@ function pushMessage(role, text, meta = "") {
   });
 }
 
-// --- 无限滚动：滚动到顶部时加载更早的消息 ---
+// ============================
+// Infinite scroll
+// ============================
+
 const messageListRef = ref(null);
 
 function onMessageListScroll() {
   const el = messageListRef.value;
-  if (!el || loadingOlder.value || !hasMoreMessages.value) {
-    return;
-  }
-  // 滚动到接近顶部时（距离顶部 < 80px）触发加载
+  if (!el || loadingOlder.value || !hasMoreMessages.value) return;
   if (el.scrollTop < 80) {
     loadOlderMessages();
   }
 }
 
 async function loadOlderMessages() {
-  if (loadingOlder.value || !hasMoreMessages.value) {
-    return;
-  }
+  if (loadingOlder.value || !hasMoreMessages.value || !activeConvId.value) return;
   loadingOlder.value = true;
   try {
     const newOffset = loadingOffset.value + PAGE_LIMIT;
-    const response = await fetchChatHistory(newOffset, PAGE_LIMIT);
+    const response = await fetchChatHistory(activeConvId.value, newOffset, PAGE_LIMIT);
     const data = response?.data;
-    if (!data) {
-      return;
-    }
+    if (!data) return;
 
-    // 记录旧滚动高度，加载后滚动回原来位置
     const el = messageListRef.value;
     const prevScrollHeight = el?.scrollHeight || 0;
 
@@ -225,19 +204,21 @@ async function loadOlderMessages() {
       historyLoaded.value = true;
     }
 
-    // 保持用户当前查看位置不变
     await nextTick();
     if (el) {
       el.scrollTop = el.scrollHeight - prevScrollHeight;
     }
   } catch {
-    // 静默失败，不影响用户当前对话
+    // silent
   } finally {
     loadingOlder.value = false;
   }
 }
 
-// --- 初始化 ---
+// ============================
+// Init
+// ============================
+
 async function loadHealth() {
   try {
     await checkHealth();
@@ -255,7 +236,13 @@ async function restoreSession() {
     currentUser.value = response?.data || null;
     authenticated.value = Boolean(currentUser.value);
     if (authenticated.value) {
-      await loadLatestHistory();
+      await refreshConversationList();
+      // Load the most recent conversation
+      if (conversations.value.length > 0) {
+        await loadConversation(conversations.value[0].id);
+      } else {
+        await startNewConversation();
+      }
       status.value = "已登录，历史记录已恢复";
       statusTone.value = "ok";
     }
@@ -263,14 +250,31 @@ async function restoreSession() {
     setToken("");
     authenticated.value = false;
     currentUser.value = null;
-    resetWelcomeMessage();
   }
 }
 
-async function loadLatestHistory() {
-  const response = await fetchChatHistory(0, PAGE_LIMIT);
+// ============================
+// Conversation management
+// ============================
+
+async function refreshConversationList() {
+  try {
+    const response = await listConversations();
+    conversations.value = response?.data?.conversations || [];
+  } catch {
+    // silent
+  }
+}
+
+async function loadConversation(convId) {
+  activeConvId.value = convId;
+  sidePanelOpen.value = false;
+  loadingOffset.value = 0;
+  hasMoreMessages.value = false;
+  historyLoaded.value = false;
+
+  const response = await fetchChatHistory(convId, 0, PAGE_LIMIT);
   const data = response?.data;
-  threadId.value = data?.thread_id || "";
   loadingOffset.value = 0;
   hasMoreMessages.value = data?.has_more ?? false;
   historyLoaded.value = true;
@@ -278,18 +282,49 @@ async function loadLatestHistory() {
   const items = Array.isArray(data?.messages) ? data.messages.map(toUiMessage) : [];
   if (items.length > 0) {
     messages.value = items;
-    return;
+  } else {
+    // fresh conversation — show welcome
+    messages.value = [];
   }
-  resetWelcomeMessage();
+  scrollToBottom();
 }
 
-// --- 认证 ---
+async function startNewConversation() {
+  // Create a new conversation by loading with null conv id — service will create one
+  activeConvId.value = null;
+  sidePanelOpen.value = false;
+  messages.value = [];
+  loadingOffset.value = 0;
+  hasMoreMessages.value = false;
+  historyLoaded.value = true;
+  scrollToBottom();
+}
+
+async function handleDeleteConversation(convId) {
+  if (!confirm("确定删除这个对话？")) return;
+  try {
+    await deleteConversation(convId);
+    await refreshConversationList();
+    if (activeConvId.value === convId) {
+      if (conversations.value.length > 0) {
+        await loadConversation(conversations.value[0].id);
+      } else {
+        await startNewConversation();
+      }
+    }
+  } catch {
+    // silent
+  }
+}
+
+// ============================
+// Auth
+// ============================
+
 async function handleAuthSubmit() {
   const name = username.value.trim();
   const secret = password.value.trim();
-  if (!name || !secret || authLoading.value) {
-    return;
-  }
+  if (!name || !secret || authLoading.value) return;
 
   authLoading.value = true;
   try {
@@ -302,7 +337,12 @@ async function handleAuthSubmit() {
     currentUser.value = data?.user || null;
     authenticated.value = Boolean(currentUser.value);
     password.value = "";
-    await loadLatestHistory();
+    await refreshConversationList();
+    if (conversations.value.length > 0) {
+      await loadConversation(conversations.value[0].id);
+    } else {
+      await startNewConversation();
+    }
     status.value = authMode.value === "login" ? "登录成功" : "注册并登录成功";
     statusTone.value = "ok";
   } catch (error) {
@@ -317,21 +357,20 @@ function handleLogout() {
   setToken("");
   authenticated.value = false;
   currentUser.value = null;
-  threadId.value = "";
-  password.value = "";
-  hasMoreMessages.value = false;
-  loadingOffset.value = 0;
-  historyLoaded.value = false;
-  resetWelcomeMessage();
+  activeConvId.value = null;
+  conversations.value = [];
+  messages.value = [];
   status.value = "已退出登录";
   statusTone.value = "pending";
 }
 
+// ============================
+// Scroll
+// ============================
+
 let _scrollRaf = null;
 function scrollToBottom() {
-  if (_scrollRaf) {
-    return;
-  }
+  if (_scrollRaf) return;
   _scrollRaf = requestAnimationFrame(() => {
     _scrollRaf = null;
     const el = messageListRef.value;
@@ -341,12 +380,13 @@ function scrollToBottom() {
   });
 }
 
-// --- 发送消息 ---
+// ============================
+// Send
+// ============================
+
 async function handleSend() {
   const content = input.value.trim();
-  if (!content || sending.value || !authenticated.value) {
-    return;
-  }
+  if (!content || sending.value || !authenticated.value) return;
 
   const pendingAssistantId = `assistant-pending-${Date.now()}`;
   pushMessage("user", content, new Date().toLocaleString());
@@ -354,25 +394,24 @@ async function handleSend() {
     id: pendingAssistantId,
     role: "assistant",
     text: "",
-    meta: "正在回复...",
+    meta: "思考中",
   });
   input.value = "";
   sending.value = true;
   scrollToBottom();
 
   try {
-    await streamEmotionalMessage(content, {
+    await streamEmotionalMessage(content, activeConvId.value, {
       onChunk(payload) {
-        const target = messages.value.find((message) => message.id === pendingAssistantId);
+        const target = messages.value.find((m) => m.id === pendingAssistantId);
         if (target) {
           target.text += payload?.content || "";
-          target.meta = "流式回复中...";
+          target.meta = "回复中";
         }
         scrollToBottom();
       },
       onDone(payload) {
-        threadId.value = payload?.thread_id || "";
-        const target = messages.value.find((message) => message.id === pendingAssistantId);
+        const target = messages.value.find((m) => m.id === pendingAssistantId);
         if (target) {
           target.text =
             payload?.assistant_message?.content || target.text || "我在这里陪着你。";
@@ -380,10 +419,19 @@ async function handleSend() {
             ? new Date(payload.assistant_message.created_at).toLocaleString()
             : "已完成";
         }
+        // Update conversation id from the response
+        if (payload?.conversation_id) {
+          activeConvId.value = payload.conversation_id;
+        }
+        // Refresh the conversation list to get the new title
+        refreshConversationList();
+        historyLoaded.value = false;
+        status.value = "对话正常";
+        statusTone.value = "ok";
         scrollToBottom();
       },
       onError(payload) {
-        const target = messages.value.find((message) => message.id === pendingAssistantId);
+        const target = messages.value.find((m) => m.id === pendingAssistantId);
         if (target) {
           target.text = payload?.message || "流式输出失败。";
           target.meta = "请求失败";
@@ -391,12 +439,8 @@ async function handleSend() {
         scrollToBottom();
       },
     });
-    // 新消息已持久化到后端，下次加载历史时就能看到
-    historyLoaded.value = false;
-    status.value = "对话正常";
-    statusTone.value = "ok";
   } catch (error) {
-    const target = messages.value.find((message) => message.id === pendingAssistantId);
+    const target = messages.value.find((m) => m.id === pendingAssistantId);
     if (target) {
       target.text = "我这边暂时没有连上后端服务。你可以先检查服务是否启动。";
       target.meta = "请求失败";
@@ -410,35 +454,9 @@ async function handleSend() {
 }
 
 function handleComposerKeydown(event) {
-  if (event.key !== "Enter" || event.shiftKey || event.isComposing) {
-    return;
-  }
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
   event.preventDefault();
   handleSend();
-}
-
-async function handleReset() {
-  if (!authenticated.value) {
-    resetWelcomeMessage("新的对话已经开始了。想从哪里说起，都可以。");
-    status.value = "会话已重置";
-    statusTone.value = "pending";
-    return;
-  }
-
-  try {
-    const response = await resetChatHistory();
-    const history = response?.data;
-    threadId.value = history?.thread_id || "";
-    loadingOffset.value = 0;
-    hasMoreMessages.value = false;
-    historyLoaded.value = true;
-    resetWelcomeMessage("新的对话已经开始了。想从哪里说起，都可以。");
-    status.value = "会话已重置并清空历史";
-    statusTone.value = "ok";
-  } catch (error) {
-    status.value = `重置失败：${error.message}`;
-    statusTone.value = "error";
-  }
 }
 
 function autoResizeTextarea(event) {
@@ -499,46 +517,97 @@ onMounted(() => {
     </main>
 
     <!-- Chat -->
-    <main v-else class="chat">
-      <header class="chat-head">
-        <div class="chat-head-left">
-          <span class="dot" :data-tone="statusTone"></span>
-          <span class="chat-name">{{ currentUser?.username }}</span>
-        </div>
-        <div class="chat-head-right">
-          <button class="btn ghost" type="button" @click="handleReset">新对话</button>
-          <button class="btn ghost" type="button" @click="handleLogout">退出</button>
-        </div>
-      </header>
+    <main v-else class="chat-layout">
+      <!-- Overlay for mobile sidebar -->
+      <div
+        v-if="sidePanelOpen && isMobile"
+        class="overlay"
+        @click="sidePanelOpen = false"
+      ></div>
 
-      <div ref="messageListRef" class="msgs" @scroll="onMessageListScroll">
-        <div v-if="loadingOlder" class="load-hint">加载中...</div>
-        <div v-else-if="hasMoreMessages" class="load-hint">向上滚动加载更多</div>
-
-        <div
-          v-for="m in messages"
-          :key="m.id"
-          class="msg"
-          :class="m.role"
-        >
-          <div class="msg-bubble" v-html="mdRenderer(m.text)"></div>
-          <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
+      <!-- Conversation sidebar -->
+      <aside class="side" :class="{ open: sidePanelOpen }">
+        <div class="side-head">
+          <span class="side-title">历史对话</span>
+          <button class="btn ghost" type="button" @click="startNewConversation">新对话</button>
         </div>
+        <div class="side-list">
+          <div
+            v-for="conv in conversations"
+            :key="conv.id"
+            class="side-item"
+            :class="{ active: conv.id === activeConvId }"
+            @click="loadConversation(conv.id)"
+          >
+            <div class="side-item-title">{{ conv.title }}</div>
+            <div class="side-item-meta">{{ conv.message_count }} 条消息</div>
+            <button
+              class="side-del"
+              type="button"
+              title="删除"
+              @click.stop="handleDeleteConversation(conv.id)"
+            >×</button>
+          </div>
+          <div v-if="conversations.length === 0" class="side-empty">暂无历史对话</div>
+        </div>
+      </aside>
+
+      <!-- Main chat area -->
+      <div class="chat">
+        <header class="chat-head">
+          <div class="chat-head-left">
+            <button class="btn ghost menu-btn" type="button" @click="sidePanelOpen = !sidePanelOpen">
+              ☰
+            </button>
+            <span class="dot" :data-tone="statusTone"></span>
+            <span class="chat-name">{{ currentUser?.username }}</span>
+          </div>
+          <div class="chat-head-right">
+            <button class="btn ghost" type="button" @click="startNewConversation">新对话</button>
+            <button class="btn ghost" type="button" @click="handleLogout">退出</button>
+          </div>
+        </header>
+
+        <div ref="messageListRef" class="msgs" @scroll="onMessageListScroll">
+          <div v-if="loadingOlder" class="load-hint">加载中...</div>
+          <div v-else-if="hasMoreMessages" class="load-hint">向上滚动加载更多</div>
+
+          <div v-if="!activeConvId && messages.length === 0" class="empty-state">
+            <p>点击"新对话"开始聊天</p>
+          </div>
+
+          <div
+            v-for="m in messages"
+            :key="m.id"
+            class="msg"
+            :class="[m.role, { pending: m.role === 'assistant' && !m.text }]"
+          >
+            <div class="msg-bubble">
+              <div v-if="m.role === 'assistant' && !m.text" class="thinking">
+                <span class="dot-pulse"></span>
+                <span class="dot-pulse"></span>
+                <span class="dot-pulse"></span>
+              </div>
+              <div v-else v-html="mdRenderer(m.text)"></div>
+            </div>
+            <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
+          </div>
+        </div>
+
+        <form class="composer" @submit.prevent="handleSend">
+          <textarea
+            v-model="input"
+            class="input ta"
+            :rows="isMobile ? 2 : 3"
+            placeholder="说说你的感受……"
+            @keydown="handleComposerKeydown"
+            @input="autoResizeTextarea"
+          ></textarea>
+          <button class="btn btn-primary send" type="submit" :disabled="!canSend">
+            {{ sending ? "..." : "发送" }}
+          </button>
+        </form>
       </div>
-
-      <form class="composer" @submit.prevent="handleSend">
-        <textarea
-          v-model="input"
-          class="input ta"
-          :rows="isMobile ? 2 : 3"
-          placeholder="说说你的感受……"
-          @keydown="handleComposerKeydown"
-          @input="autoResizeTextarea"
-        ></textarea>
-        <button class="btn btn-primary send" type="submit" :disabled="!canSend">
-          {{ sending ? "..." : "发送" }}
-        </button>
-      </form>
     </main>
   </div>
 </template>
@@ -714,15 +783,128 @@ main { width: 100%; }
   gap: 0.25rem;
 }
 
-/* ===== Chat ===== */
+/* ===== Chat Layout ===== */
+.chat-layout {
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* --- Overlay for mobile --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 9;
+}
+
+/* --- Sidebar --- */
+.side {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.side-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.side-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.35rem 0;
+}
+
+.side-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+  position: relative;
+}
+.side-item:hover { background: var(--accent-soft); }
+.side-item.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.side-item-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 1.2rem;
+}
+
+.side-item-meta {
+  font-size: 0.68rem;
+  color: var(--fg3);
+  margin-top: 0.1rem;
+}
+
+.side-del {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--fg3);
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.side-item:hover .side-del { opacity: 0.6; }
+.side-del:hover { background: rgba(0,0,0,0.06); opacity: 1 !important; }
+
+.side-empty {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--fg3);
+  padding: 2rem 0;
+}
+
+/* --- Main Chat --- */
 .chat {
+  flex: 1;
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  max-width: 680px;
-  margin: 0 auto;
+  min-width: 0;
   background: var(--surface);
-  box-shadow: -1px 0 0 var(--border), 1px 0 0 var(--border);
+}
+
+/* --- Menu button (mobile) --- */
+.menu-btn {
+  display: none;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.35rem;
+  line-height: 1;
 }
 
 /* --- Header --- */
@@ -889,6 +1071,42 @@ main { width: 100%; }
 
 .msg.user .msg-meta { color: var(--fg3); }
 
+/* --- Thinking animation (3 bouncing dots) --- */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.15rem 0;
+  min-height: 1.2em;
+}
+.dot-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg3);
+  animation: pulse 1.4s ease-in-out infinite both;
+}
+.dot-pulse:nth-child(1) { animation-delay: 0s; }
+.dot-pulse:nth-child(2) { animation-delay: 0.2s; }
+.dot-pulse:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* --- Empty state --- */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--fg3);
+}
+.empty-state p { padding: 2rem; }
+
 /* --- Composer --- */
 .composer {
   flex-shrink: 0;
@@ -938,6 +1156,8 @@ main { width: 100%; }
   }
 
   /* --- Chat --- */
+  .chat-layout { max-width: 100%; }
+
   .chat {
     max-width: 100%;
     box-shadow: none;
@@ -954,6 +1174,21 @@ main { width: 100%; }
     padding: 0.35rem 0.5rem;
     font-size: 0.75rem;
   }
+
+  /* --- Sidebar on mobile --- */
+  .menu-btn { display: inline-flex; }
+
+  .side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+  }
+  .side.open { transform: translateX(0); }
 
   .msgs {
     flex: 1;
