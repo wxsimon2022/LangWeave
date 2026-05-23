@@ -66,3 +66,10 @@ export function adminListUsers() {
 export function adminDeleteUser(userId) {
   return request(`/api/v1/admin/users/${userId}`, { method: "DELETE" });
 }
+
+export function adminUpdatePassword(userId, newPassword) {
+  return request(`/api/v1/admin/users/${userId}/password`, {
+    method: "PUT",
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+}

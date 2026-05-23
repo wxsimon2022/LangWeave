@@ -100,6 +100,19 @@ class AuthService:
         self._db.commit()
         return user.id, username
 
+    def update_user_password(self, user_id: int, new_password: str) -> tuple[int, str]:
+        """Update a user's password. Returns (user_id, username)."""
+        user = self._db.get(User, user_id)
+        if user is None:
+            msg = f"User {user_id} not found"
+            raise ValueError(msg)
+        if len(new_password.strip()) < 6:
+            msg = "Password must be at least 6 characters"
+            raise ValueError(msg)
+        user.password_hash = hash_password(new_password.strip())
+        self._db.commit()
+        return user.id, user.username
+
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------

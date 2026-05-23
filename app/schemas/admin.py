@@ -28,3 +28,16 @@ class AdminUserDeleteResponse(BaseModel):
 
     deleted_user_id: int
     deleted_username: str
+
+
+class AdminUpdatePasswordRequest(BaseModel):
+    """Request to update a user's password."""
+
+    new_password: str
+
+
+class AdminUpdatePasswordResponse(BaseModel):
+    """Result of updating a user's password."""
+
+    user_id: int
+    username: str

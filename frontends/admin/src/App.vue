@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { adminDeleteUser, adminListUsers, getCurrentUser, login, setToken } from "./api.js";
+import { adminDeleteUser, adminListUsers, adminUpdatePassword, getCurrentUser, login, setToken } from "./api.js";
 
 // ===== Auth state =====
 const username = ref("");
@@ -14,6 +14,13 @@ const authError = ref("");
 const users = ref([]);
 const loading = ref(false);
 const adminError = ref("");
+
+// ===== Password modal =====
+const showPasswordModal = ref(false);
+const passwordTargetUser = ref(null);
+const newPassword = ref("");
+const passwordLoading = ref(false);
+const passwordError = ref("");
 
 // ===== Auth =====
 const canLogin = computed(() => username.value.trim().length >= 3 && password.value.trim().length >= 6);
@@ -68,6 +75,36 @@ async function handleDeleteUser(userId) {
     users.value = users.value.filter((u) => u.id !== userId);
   } catch (error) {
     adminError.value = error.message;
+  }
+}
+
+function openPasswordModal(user) {
+  passwordTargetUser.value = user;
+  newPassword.value = "";
+  passwordError.value = "";
+  passwordLoading.value = false;
+  showPasswordModal.value = true;
+}
+
+function closePasswordModal() {
+  showPasswordModal.value = false;
+  passwordTargetUser.value = null;
+  newPassword.value = "";
+  passwordError.value = "";
+}
+
+async function handleUpdatePassword() {
+  if (!passwordTargetUser.value || newPassword.value.trim().length < 6 || passwordLoading.value) return;
+  passwordLoading.value = true;
+  passwordError.value = "";
+  try {
+    await adminUpdatePassword(passwordTargetUser.value.id, newPassword.value.trim());
+    closePasswordModal();
+    adminError.value = `密码已更新`;
+  } catch (error) {
+    passwordError.value = error.message;
+  } finally {
+    passwordLoading.value = false;
   }
 }
 
@@ -167,6 +204,14 @@ onMounted(restoreSession);
               <td>{{ formatDate(u.created_at) }}</td>
               <td>
                 <button
+                  class="btn ghost"
+                  type="button"
+                  @click="openPasswordModal(u)"
+                  title="修改密码"
+                >
+                  改密
+                </button>
+                <button
                   class="btn ghost danger"
                   type="button"
                   :disabled="u.id === currentUser?.id"
@@ -182,6 +227,40 @@ onMounted(restoreSession);
 
         <div v-else class="load-hint">暂无注册用户</div>
       </div>
+
+      <!-- Password Modal -->
+      <Teleport to="body">
+        <div v-if="showPasswordModal" class="modal-overlay" @click.self="closePasswordModal">
+          <div class="modal-card">
+            <h3 class="modal-title">修改密码</h3>
+            <p class="modal-desc">用户：{{ passwordTargetUser?.username }}</p>
+
+            <div v-if="passwordError" class="msg-bar error">{{ passwordError }}</div>
+
+            <form class="modal-form" @submit.prevent="handleUpdatePassword">
+              <div class="field">
+                <input
+                  v-model="newPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="新密码（至少6位）"
+                  class="input"
+                />
+              </div>
+              <div class="modal-actions">
+                <button class="btn ghost" type="button" @click="closePasswordModal">取消</button>
+                <button
+                  class="btn btn-primary"
+                  type="submit"
+                  :disabled="newPassword.trim().length < 6 || passwordLoading"
+                >
+                  {{ passwordLoading ? "提交中..." : "确认修改" }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Teleport>
     </main>
   </div>
 </template>
@@ -373,6 +452,47 @@ body {
 .user-table .danger { color: #d55; }
 .user-table .danger:hover:not(:disabled) { background: rgba(200,60,60,0.08); color: #c33; }
 
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 2rem 1.75rem 1.75rem;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.12);
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+}
+
+.modal-desc {
+  font-size: 0.82rem;
+  color: var(--fg2);
+  margin-bottom: 1rem;
+}
+
+.modal-form .field { margin-bottom: 1rem; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* ===== Mobile ===== */
 @media (max-width: 640px) {
   html { font-size: 15px; }
@@ -386,5 +506,6 @@ body {
   .admin-header { padding: 0.6rem 0; }
   .admin-content { padding: 0.6rem 0; }
   .user-table th, .user-table td { padding: 0.45rem 0.3rem; font-size: 0.8rem; }
+  .user-table .ghost { font-size: 0.72rem; padding: 0.2rem 0.4rem; }
 }
 </style>

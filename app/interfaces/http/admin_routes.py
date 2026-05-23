@@ -7,7 +7,12 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.interfaces.http.deps import AuthServiceDep, CurrentUser
-from app.schemas.admin import AdminUserDeleteResponse, AdminUserListResponse
+from app.schemas.admin import (
+    AdminUpdatePasswordRequest,
+    AdminUpdatePasswordResponse,
+    AdminUserDeleteResponse,
+    AdminUserListResponse,
+)
 from langweave.web.response import ApiResponse
 
 logger = logging.getLogger(__name__)
@@ -53,6 +58,32 @@ async def delete_user(
                 deleted_username=deleted_username,
             ),
             message=f"用户 {deleted_username} 已删除",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.put(
+    "/users/{user_id}/password",
+    response_model=ApiResponse[AdminUpdatePasswordResponse],
+    summary="修改指定用户的密码（仅管理员）",
+)
+async def update_user_password(
+    user_id: int,
+    body: AdminUpdatePasswordRequest,
+    current_user: CurrentUser,
+    auth_service: AuthServiceDep,
+) -> ApiResponse[AdminUpdatePasswordResponse]:
+    try:
+        updated_id, updated_username = auth_service.update_user_password(
+            user_id, body.new_password
+        )
+        return ApiResponse.ok(
+            AdminUpdatePasswordResponse(
+                user_id=updated_id,
+                username=updated_username,
+            ),
+            message=f"用户 {updated_username} 密码已更新",
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
