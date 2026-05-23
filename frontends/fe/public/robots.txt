@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://chat.mybfs.cn/sitemap.xml

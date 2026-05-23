@@ -54,7 +54,7 @@ rsync -a \
   --exclude "script/deploy/build" \
   --exclude ".env" \
   --exclude ".env.prod" \
-  app langweave tests main.py pyproject.toml requirements.txt README.md .env.example \
+  app langweave main.py pyproject.toml requirements.txt README.md .env.example \
   "$RELEASE_DIR/"
 # Include .env.prod as the production env template (rsync excludes it above)
 mkdir -p "$RELEASE_DIR/config"
@@ -150,6 +150,32 @@ fi
 "
 
 echo "Deployment complete"
+
+# ---------------------------------------------------------------------------
+# Git: commit, push, and tag
+# ---------------------------------------------------------------------------
+cd "$ROOT_DIR"
+
+# 自动计算下一个 tag：从 v1.0.1 开始，取最新 tag 递增 patch 版本
+NEXT_TAG="v1.0.1"
+LATEST_TAG="$(git tag --sort=-v:refname 2>/dev/null | head -1)"
+if [[ -n "$LATEST_TAG" && "$LATEST_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  MAJOR="${BASH_REMATCH[1]}"
+  MINOR="${BASH_REMATCH[2]}"
+  PATCH="${BASH_REMATCH[3]}"
+  NEXT_TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+fi
+
+# 如果有未提交的改动，先全部暂存并提交
+if ! git diff --quiet --ignore-submodules HEAD 2>/dev/null; then
+  git add -A
+  git commit -m "chore: auto-commit before deploy $NEXT_TAG" || true
+fi
+
+git tag "$NEXT_TAG"
+git push origin main --tags 2>&1 || echo "Warning: git push failed (check remote)"
+echo "Tagged and pushed: $NEXT_TAG"
+
 cat <<EOF
 One-click deploy finished.
 

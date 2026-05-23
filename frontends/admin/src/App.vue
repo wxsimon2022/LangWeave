@@ -353,12 +353,13 @@ onMounted(restoreSession);
                 <div
                   v-for="m in chatMessages"
                   :key="m.id"
-                  class="chat-msg"
-                  :class="{ user: m.role === 'user', assistant: m.role === 'assistant' }"
+                  class="msg-bubble-wrap"
+                  :class="m.role"
                 >
-                  <div class="chat-msg-label">{{ m.role === 'user' ? '用户' : '助手' }}</div>
-                  <div class="chat-msg-content">{{ m.content }}</div>
-                  <div class="chat-msg-time">{{ formatDate(m.created_at) }}</div>
+                  <div class="msg-bubble">
+                    {{ m.content }}
+                  </div>
+                  <span class="msg-time">{{ formatDate(m.created_at) }}</span>
                 </div>
               </div>
             </div>
@@ -694,42 +695,55 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
-.chat-msg {
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+.msg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 78%;
 }
 
-.chat-msg.user {
-  border-left: 3px solid var(--accent);
+.msg-bubble-wrap.user {
+  align-self: flex-end;
+  align-items: flex-end;
 }
 
-.chat-msg.assistant {
-  border-left: 3px solid #4a9eff;
+.msg-bubble-wrap.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
 }
 
-.chat-msg-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--fg2);
-  margin-bottom: 0.25rem;
-}
-
-.chat-msg-content {
-  font-size: 0.85rem;
-  line-height: 1.5;
+.msg-bubble {
+  padding: 0.6rem 0.95rem;
+  border-radius: 1.2rem;
+  line-height: 1.55;
+  font-size: 0.88rem;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
   white-space: pre-wrap;
-  word-break: break-word;
 }
 
-.chat-msg-time {
-  font-size: 0.68rem;
+.msg-bubble-wrap.user .msg-bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 0.3rem;
+}
+
+.msg-bubble-wrap.assistant .msg-bubble {
+  background: #f7f2ed;
+  color: var(--fg);
+  border-bottom-left-radius: 0.3rem;
+}
+
+.msg-time {
+  font-size: 0.58rem;
   color: var(--fg3);
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
+  padding: 0 0.2rem;
 }
 
 /* ===== Mobile ===== */
