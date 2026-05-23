@@ -43,6 +43,7 @@ async def record_heartbeat_async(
     """
     client = get_redis()
     if client is None:
+        logger.warning("Redis not available — heartbeat not recorded")
         return
 
     now = time.time()
@@ -65,6 +66,7 @@ async def record_heartbeat_async(
     pipe.zremrangebyscore(HEARTBEAT_PREFIX, "-inf", now - HEARTBEAT_TTL)
 
     await pipe.execute()
+    logger.debug("Heartbeat recorded for user %s (id=%d)", username, user_id)
 
 
 async def get_online_users_async() -> list[dict]:
@@ -99,6 +101,7 @@ async def get_online_users_async() -> list[dict]:
 
     # Sort by last_seen descending
     users.sort(key=lambda u: u.get("last_seen", 0), reverse=True)
+    logger.debug("get_online_users: found %d online users", len(users))
     return users
 
 

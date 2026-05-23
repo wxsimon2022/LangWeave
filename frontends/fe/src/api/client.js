@@ -174,10 +174,13 @@ export async function streamEmotionalMessage(message, conversationId, handlers =
 
 export async function sendHeartbeat() {
   const token = getToken();
-  if (!token) return;
+  if (!token) {
+    console.warn("[heartbeat] No token, skipping");
+    return;
+  }
   try {
     await request("/api/v1/heartbeat/ping", { method: "POST" });
-  } catch {
-    // silent — don't spam logs
+  } catch (err) {
+    console.warn("[heartbeat] Failed:", err.message);
   }
 }

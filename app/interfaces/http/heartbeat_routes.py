@@ -26,6 +26,11 @@ async def heartbeat_ping(
     client_ip = request.client.host if request.client else ""
     user_agent = request.headers.get("User-Agent", "")
 
+    logger.info(
+        "Heartbeat from user %s (id=%d, ip=%s)",
+        user.username, user.id, client_ip,
+    )
+
     await record_heartbeat_async(
         user_id=user.id,
         username=user.username,
