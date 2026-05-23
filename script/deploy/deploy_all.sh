@@ -127,6 +127,18 @@ fi
 cd '$REMOTE_CURRENT_DIR'
 ln -sfn '$REMOTE_ENV_FILE' .env
 
+echo 'Checking Redis...'
+if ! command -v redis-server &>/dev/null; then
+  echo 'Installing Redis...'
+  dnf install -y redis 2>&1 || { echo 'Redis install failed (continuing)'; }
+fi
+if systemctl is-active redis &>/dev/null; then
+  echo 'Redis already running.'
+else
+  systemctl start redis 2>/dev/null || redis-server --daemonize yes 2>/dev/null || true
+  sleep 1
+fi
+
 if command -v python3.11 >/dev/null 2>&1; then
   echo 'Using existing python3.11'
   echo 'python3.11' > '$REMOTE_PYTHON_BIN'

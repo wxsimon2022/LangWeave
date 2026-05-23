@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.application.security import decode_access_token, get_auth_settings, verify_request_signature
 from app.application.services.auth import AuthService
+from app.infrastructure.cache.token_blacklist import is_token_blacklisted_sync
 from app.application.services.emotional_chat import EmotionalChatService
 from app.application.services.intent import IntentService
 from app.application.services.session import SessionService
@@ -57,7 +58,14 @@ def get_current_user(
             detail="Missing bearer token",
         )
     try:
-        user_id = decode_access_token(credentials.credentials)
+        token = credentials.credentials
+        # Check token blacklist (logout / revocation)
+        if is_token_blacklisted_sync(token):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
+        user_id = decode_access_token(token)
         return auth_service.get_user(user_id)
     except (JWTError, ValueError) as exc:
         raise HTTPException(
