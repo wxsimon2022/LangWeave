@@ -111,6 +111,13 @@ export function deleteConversation(conversationId) {
   });
 }
 
+export function updateConversationTitle(conversationId, title) {
+  return request(`/api/v1/emotional-chat/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
 export async function streamEmotionalMessage(message, conversationId, handlers = {}) {
   const token = getToken();
   const response = await fetch(`${API_BASE_URL}/api/v1/emotional-chat/stream`, {
@@ -182,5 +189,33 @@ export async function sendHeartbeat() {
     await request("/api/v1/heartbeat/ping", { method: "POST" });
   } catch (err) {
     console.warn("[heartbeat] Failed:", err.message);
+  }
+}
+
+// --- Session check (single-device login) ---
+
+let onKickedCallback = null;
+
+/** Register a callback that fires when the current session is kicked. */
+export function onSessionKicked(callback) {
+  onKickedCallback = callback;
+}
+
+/** The 401 detail message the backend returns when a session is replaced. */
+const KICKED_MESSAGE = "Session has been replaced — logged in elsewhere";
+
+/**
+ * Periodic session check that detects if the current device was kicked out
+ * by another login.  Should be called on an interval.
+ */
+export async function checkSession() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    await request("/api/v1/auth/me", { method: "GET" });
+  } catch (err) {
+    if (err.message === KICKED_MESSAGE) {
+      onKickedCallback?.("您的账号已在其他设备登录");
+    }
   }
 }

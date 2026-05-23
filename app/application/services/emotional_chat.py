@@ -305,6 +305,33 @@ class EmotionalChatService:
         )
 
     # ------------------------------------------------------------------
+    # Rename a conversation
+    # ------------------------------------------------------------------
+
+    async def rename_conversation(
+        self, user: User, *, conversation_id: int, title: str
+    ) -> ConversationSummary:
+        """Rename a conversation. Only the owner can rename."""
+        title = title.strip()
+        if not title:
+            raise ValidationError("Title cannot be empty")
+        conv = self._get_conversation(user.id, conversation_id)
+        if conv is None:
+            raise ValidationError(f"Conversation {conversation_id} not found")
+        conv.title = title[:128]
+        conv.updated_at = datetime.now(timezone.utc)
+        self._db.commit()
+        self._db.refresh(conv)
+        return ConversationSummary(
+            id=conv.id,
+            title=conv.title,
+            agent=conv.agent_name,
+            message_count=len(conv.messages),
+            created_at=conv.created_at,
+            updated_at=conv.updated_at,
+        )
+
+    # ------------------------------------------------------------------
     # Delete a conversation entirely
     # ------------------------------------------------------------------
 

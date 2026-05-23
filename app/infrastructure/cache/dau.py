@@ -19,11 +19,12 @@ import logging
 import time
 from datetime import UTC, date, datetime, timedelta
 
+from app.constants import REDIS_KEY_PREFIX
 from app.infrastructure.cache import get_redis, get_sync_redis
 
 logger = logging.getLogger(__name__)
 
-DAU_PREFIX = "dau"
+DAU_PREFIX = f"{REDIS_KEY_PREFIX}dau"
 DAU_HISTORY_KEY = f"{DAU_PREFIX}:history"
 DAU_PEAK_PREFIX = f"{DAU_PREFIX}:peak"
 

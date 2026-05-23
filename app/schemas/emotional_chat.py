@@ -60,6 +60,12 @@ class ConversationSummary(BaseModel):
     updated_at: datetime
 
 
+class ConversationUpdateRequest(BaseModel):
+    """Rename a conversation."""
+
+    title: str = Field(..., min_length=1, max_length=128)
+
+
 class ConversationListResponse(BaseModel):
     """List of all conversations for the current user."""
 

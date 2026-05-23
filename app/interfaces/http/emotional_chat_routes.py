@@ -12,6 +12,8 @@ from app.application.services.emotional_chat import EmotionalChatService
 from app.interfaces.http.deps import CurrentUser, EmotionalChatServiceDep
 from app.schemas.emotional_chat import (
     ConversationListResponse,
+    ConversationSummary,
+    ConversationUpdateRequest,
     EmotionalChatRequest,
     EmotionalChatResponse,
     EmotionalConversationResponse,
@@ -175,5 +177,25 @@ async def delete_conversation(
     try:
         await service.delete_conversation(user, conversation_id=conversation_id)
         return ApiResponse.ok(None, message="对话已删除")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/conversations/{conversation_id}",
+    response_model=ApiResponse[ConversationSummary],
+    summary="修改对话名称",
+)
+async def update_conversation(
+    conversation_id: int,
+    body: ConversationUpdateRequest,
+    user: CurrentUser,
+    service: EmotionalChatServiceDep,
+) -> ApiResponse[ConversationSummary]:
+    try:
+        result = await service.rename_conversation(
+            user, conversation_id=conversation_id, title=body.title
+        )
+        return ApiResponse.ok(result, message="对话已重命名")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -14,9 +14,10 @@ from datetime import UTC, datetime
 from jose import JWTError, jwt
 
 from app.application.security import get_auth_settings
+from app.constants import REDIS_KEY_PREFIX
 from app.infrastructure.cache import get_redis, get_sync_redis
 
-BLACKLIST_PREFIX = "token:blacklist:"
+BLACKLIST_PREFIX = f"{REDIS_KEY_PREFIX}token:blacklist:"
 
 
 def _get_token_expiry(token: str) -> int:

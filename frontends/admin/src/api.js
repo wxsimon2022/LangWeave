@@ -96,3 +96,25 @@ export function adminCreateUser(username, password, isAdmin = false) {
 export function adminGetDauStats(days = 7) {
   return request(`/api/v1/admin/stats/dau?days=${days}`, { method: "GET" });
 }
+
+// --- Session check (single-device login) ---
+
+let onAdminKickedCallback = null;
+
+export function onAdminSessionKicked(callback) {
+  onAdminKickedCallback = callback;
+}
+
+const KICKED_MESSAGE = "Session has been replaced — logged in elsewhere";
+
+export async function adminCheckSession() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    await getCurrentUser();
+  } catch (err) {
+    if (err.message === KICKED_MESSAGE) {
+      onAdminKickedCallback?.("您的账号已在其他设备登录");
+    }
+  }
+}

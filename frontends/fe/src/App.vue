@@ -9,8 +9,11 @@ import {
   login,
   register,
   deleteConversation,
+  updateConversationTitle,
   setToken,
   sendHeartbeat,
+  checkSession,
+  onSessionKicked,
   streamEmotionalMessage,
 } from "./api/client";
 
@@ -73,6 +76,41 @@ function stopHeartbeat() {
     heartbeatTimer = null;
   }
 }
+
+// --- Session check (single-device login) ---
+const kickedMessage = ref("");
+let sessionCheckTimer = null;
+
+function startSessionCheck() {
+  stopSessionCheck();
+  checkSession();
+  sessionCheckTimer = setInterval(checkSession, 30000);
+}
+
+function stopSessionCheck() {
+  if (sessionCheckTimer) {
+    clearInterval(sessionCheckTimer);
+    sessionCheckTimer = null;
+  }
+}
+
+function forceLogoutKicked(msg) {
+  kickedMessage.value = msg;
+  stopHeartbeat();
+  stopSessionCheck();
+  setToken("");
+  authenticated.value = false;
+  currentUser.value = null;
+  activeConvId.value = null;
+  conversations.value = [];
+  messages.value = [];
+  status.value = msg;
+  statusTone.value = "error";
+}
+
+onSessionKicked((msg) => {
+  forceLogoutKicked(msg);
+});
 
 // --- Tiny Markdown renderer ---
 const mdRenderer = (() => {
@@ -299,6 +337,7 @@ async function restoreSession() {
     if (authenticated.value) {
       await refreshConversationList();
       startHeartbeat();
+      startSessionCheck();
       // Load the most recent conversation
       if (conversations.value.length > 0) {
         await loadConversation(conversations.value[0].id);
@@ -379,6 +418,46 @@ async function handleDeleteConversation(convId) {
   }
 }
 
+// --- Inline rename ---
+const renamingConvId = ref(null);
+const renamingTitle = ref("");
+
+function startRename(conv) {
+  renamingConvId.value = conv.id;
+  renamingTitle.value = conv.title;
+  // Focus the input on next tick
+  nextTick(() => {
+    const input = document.querySelector(".rename-input");
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+function cancelRename() {
+  renamingConvId.value = null;
+  renamingTitle.value = "";
+}
+
+async function submitRename() {
+  const convId = renamingConvId.value;
+  const title = renamingTitle.value.trim();
+  cancelRename();
+  if (!convId || !title) return;
+  // Optimistic update
+  const conv = conversations.value.find((c) => c.id === convId);
+  if (conv) {
+    const oldTitle = conv.title;
+    conv.title = title;
+    try {
+      await updateConversationTitle(convId, title);
+    } catch {
+      conv.title = oldTitle; // rollback on failure
+    }
+  }
+}
+
 // ============================
 // Auth
 // ============================
@@ -408,6 +487,7 @@ async function handleAuthSubmit() {
     }
     status.value = authMode.value === "login" ? "登录成功" : "注册并登录成功";
     statusTone.value = "ok";
+    startSessionCheck();
   } catch (error) {
     status.value = `认证失败：${error.message}`;
     statusTone.value = "error";
@@ -418,6 +498,7 @@ async function handleAuthSubmit() {
 
 function handleLogout() {
   stopHeartbeat();
+  stopSessionCheck();
   setToken("");
   authenticated.value = false;
   currentUser.value = null;
@@ -557,6 +638,7 @@ onMounted(() => {
     <!-- Auth -->
     <main v-if="!authenticated" class="auth">
       <div class="auth-card">
+        <div v-if="kickedMessage" class="kicked-banner">{{ kickedMessage }}</div>
         <div class="auth-icon">💬</div>
         <h1 class="auth-title">情感陪伴</h1>
         <p class="auth-subtitle">登录后自动恢复你的历史对话</p>
@@ -619,7 +701,34 @@ onMounted(() => {
             :class="{ active: conv.id === activeConvId }"
             @click="loadConversation(conv.id)"
           >
-            <div class="side-item-title">{{ conv.title }}</div>
+            <div
+              v-if="renamingConvId === conv.id"
+              class="side-item-title"
+              @click.stop
+            >
+              <input
+                class="rename-input"
+                v-model="renamingTitle"
+                @keydown.enter.prevent="submitRename"
+                @keydown.escape.prevent="cancelRename"
+                @blur="submitRename"
+                @click.stop
+              />
+            </div>
+            <div
+              v-else
+              class="side-item-title"
+              @dblclick.stop="startRename(conv)"
+              :title="conv.title"
+            >
+              {{ conv.title }}
+              <button
+                class="side-rename"
+                type="button"
+                title="重命名"
+                @click.stop="startRename(conv)"
+              >✎</button>
+            </div>
             <div class="side-item-meta">{{ conv.message_count }} 条消息</div>
             <button
               class="side-del"
@@ -992,6 +1101,38 @@ main { width: 100%; }
   overflow: hidden;
   text-overflow: ellipsis;
   padding-right: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.side-rename {
+  background: none;
+  border: none;
+  font-size: 0.7rem;
+  color: var(--fg3);
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.side-item:hover .side-rename { opacity: 0.5; }
+.side-rename:hover { opacity: 1 !important; background: rgba(0,0,0,0.05); }
+
+.rename-input {
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 500;
+  outline: none;
+  background: var(--surface);
+  color: var(--fg);
 }
 
 .side-item-meta {
@@ -1379,5 +1520,18 @@ main { width: 100%; }
   color: var(--fg3);
   user-select: none;
   cursor: default;
+}
+
+/* ===== Kicked banner ===== */
+.kicked-banner {
+  background: #fef0f0;
+  color: #d06050;
+  border: 1px solid #f5c6c6;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: center;
 }
 </style>

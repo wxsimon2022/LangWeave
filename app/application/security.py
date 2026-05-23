@@ -137,6 +137,21 @@ def decode_access_token(token: str) -> int:
     - Expiration
     - Token type is ``"access"``
     """
+    payload = _decode_access_token_payload(token)
+    return int(payload["sub"])
+
+
+def decode_access_token_with_jti(token: str) -> tuple[int, str]:
+    """Decode an access token and return ``(user_id, jti)``.
+
+    Same validation as :func:`decode_access_token`.
+    """
+    payload = _decode_access_token_payload(token)
+    return int(payload["sub"]), payload["jti"]
+
+
+def _decode_access_token_payload(token: str) -> dict:
+    """Internal: decode and validate an access token JWT, return payload."""
     settings = get_auth_settings()
     payload = jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGORITHM])
     subject = payload.get("sub")
@@ -146,7 +161,10 @@ def decode_access_token(token: str) -> int:
     if payload.get("type") != "access":
         msg = "Token is not an access token"
         raise JWTError(msg)
-    return int(subject)
+    if "jti" not in payload:
+        msg = "Token jti is missing"
+        raise JWTError(msg)
+    return payload
 
 
 def decode_refresh_token(token: str) -> int:

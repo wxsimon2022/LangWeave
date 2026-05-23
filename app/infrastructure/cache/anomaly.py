@@ -10,7 +10,10 @@ Relies on Redis being configured. When Redis is unavailable, all checks pass.
 
 from __future__ import annotations
 
+from app.constants import REDIS_KEY_PREFIX
 from app.infrastructure.cache import get_redis, get_sync_redis
+
+_P = REDIS_KEY_PREFIX
 
 # ---------------------------------------------------------------------------
 # Async versions
@@ -35,8 +38,8 @@ async def check_register_anomaly_async(
     if client is None:
         return False, None
 
-    ip_key = f"anomaly:register_ip:{ip}"
-    username_key = f"anomaly:register_username:{username}"
+    ip_key = f"{_P}anomaly:register_ip:{ip}"
+    username_key = f"{_P}anomaly:register_username:{username}"
 
     pipe = client.pipeline()
     pipe.sadd(ip_key, username)
@@ -78,10 +81,10 @@ async def check_login_anomaly_async(
         return False, None
 
     pipe = client.pipeline()
-    pipe.incr(f"anomaly:login_ip:{ip}")
-    pipe.expire(f"anomaly:login_ip:{ip}", window)
-    pipe.incr(f"anomaly:login_user:{username}")
-    pipe.expire(f"anomaly:login_user:{username}", window)
+    pipe.incr(f"{_P}anomaly:login_ip:{ip}")
+    pipe.expire(f"{_P}anomaly:login_ip:{ip}", window)
+    pipe.incr(f"{_P}anomaly:login_user:{username}")
+    pipe.expire(f"{_P}anomaly:login_user:{username}", window)
     results = await pipe.execute()
 
     ip_attempts = int(results[0])
@@ -101,12 +104,12 @@ async def record_failed_login_async(ip: str, username: str) -> None:
     if client is None:
         return
     pipe = client.pipeline()
-    pipe.incr(f"anomaly:login_ip:{ip}")
-    pipe.expire(f"anomaly:login_ip:{ip}", 300)
-    pipe.incr(f"anomaly:login_user:{username}")
-    pipe.expire(f"anomaly:login_user:{username}", 300)
-    pipe.incr(f"anomaly:login_failed_total:{username}")
-    pipe.expire(f"anomaly:login_failed_total:{username}", 3600)
+    pipe.incr(f"{_P}anomaly:login_ip:{ip}")
+    pipe.expire(f"{_P}anomaly:login_ip:{ip}", 300)
+    pipe.incr(f"{_P}anomaly:login_user:{username}")
+    pipe.expire(f"{_P}anomaly:login_user:{username}", 300)
+    pipe.incr(f"{_P}anomaly:login_failed_total:{username}")
+    pipe.expire(f"{_P}anomaly:login_failed_total:{username}", 3600)
     await pipe.execute()
 
 
@@ -123,8 +126,8 @@ def check_register_anomaly_sync(
     if client is None:
         return False, None
 
-    ip_key = f"anomaly:register_ip:{ip}"
-    username_key = f"anomaly:register_username:{username}"
+    ip_key = f"{_P}anomaly:register_ip:{ip}"
+    username_key = f"{_P}anomaly:register_username:{username}"
 
     pipe = client.pipeline()
     pipe.sadd(ip_key, username)
@@ -156,8 +159,8 @@ def check_login_anomaly_sync(
         return False, None
 
     pipe = client.pipeline()
-    pipe.get(f"anomaly:login_ip:{ip}")
-    pipe.get(f"anomaly:login_user:{username}")
+    pipe.get(f"{_P}anomaly:login_ip:{ip}")
+    pipe.get(f"{_P}anomaly:login_user:{username}")
     results = pipe.execute()
 
     ip_attempts = int(results[0] or 0)
@@ -177,8 +180,8 @@ def record_failed_login_sync(ip: str, username: str) -> None:
     if client is None:
         return
     pipe = client.pipeline()
-    pipe.incr(f"anomaly:login_ip:{ip}")
-    pipe.expire(f"anomaly:login_ip:{ip}", 300)
-    pipe.incr(f"anomaly:login_user:{username}")
-    pipe.expire(f"anomaly:login_user:{username}", 300)
+    pipe.incr(f"{_P}anomaly:login_ip:{ip}")
+    pipe.expire(f"{_P}anomaly:login_ip:{ip}", 300)
+    pipe.incr(f"{_P}anomaly:login_user:{username}")
+    pipe.expire(f"{_P}anomaly:login_user:{username}", 300)
     pipe.execute()

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 from app.application.security import (
     create_access_token,
+    decode_access_token_with_jti,
     decode_refresh_token,
 )
 from app.application.services.auth import AuthService
@@ -20,6 +21,10 @@ from app.infrastructure.cache.anomaly import (
     check_login_anomaly_sync,
     check_register_anomaly_sync,
     record_failed_login_sync,
+)
+from app.infrastructure.cache.session import (
+    clear_active_session_async,
+    set_active_session_async,
 )
 from app.infrastructure.cache.token_blacklist import blacklist_token_async
 from app.interfaces.http.deps import AuthServiceDep, CurrentUser
@@ -59,7 +64,10 @@ def register(
             detail="Registration limit reached from this IP. Please try later.",
         )
     try:
-        return ApiResponse.ok(service.register(body.username, body.password))
+        response = service.register(body.username, body.password)
+        # Single-device: set active session for new user
+        _replace_active_session(response, body.username)
+        return ApiResponse.ok(response)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -84,7 +92,10 @@ def login(
             detail="Too many login attempts. Please try later.",
         )
     try:
-        return ApiResponse.ok(service.login(body.username, body.password))
+        response = service.login(body.username, body.password)
+        # Single-device: invalidate any existing active session and set new one
+        _replace_active_session(response, body.username)
+        return ApiResponse.ok(response)
     except ValueError as exc:
         # 记录失败尝试
         record_failed_login_sync(client_ip, body.username)
@@ -103,9 +114,13 @@ def refresh(
     try:
         user_id = decode_refresh_token(body.refresh_token)
         user = service.get_user(user_id)
+        new_access_token = create_access_token(user.id)
+        # Extract jti from the new token and set as active session
+        _, new_jti = decode_access_token_with_jti(new_access_token)
+        _run_async(set_active_session_async(user.id, new_jti))
         return ApiResponse.ok(
             AuthTokenResponse(
-                access_token=create_access_token(user.id),
+                access_token=new_access_token,
                 token_type="bearer",
                 user=UserProfile.model_validate(user),
             )
@@ -137,4 +152,39 @@ async def logout(
 ) -> ApiResponse[dict]:
     if credentials is not None:
         await blacklist_token_async(credentials.credentials)
+        # Clear active session so kicked detection stops immediately
+        try:
+            user_id, _ = decode_access_token_with_jti(credentials.credentials)
+            await clear_active_session_async(user_id)
+            logger.info("Cleared active session for user %s", user_id)
+        except (JWTError, ValueError):
+            pass  # token already invalid, nothing to clear
     return ApiResponse.ok({"message": "Logged out"})
+
+
+# ---------------------------------------------------------------------------
+# Single-device login helpers
+# ---------------------------------------------------------------------------
+
+
+def _replace_active_session(response: AuthTokenResponse, _username: str) -> None:
+    """Invalidate previous session and store the new access token's jti.
+
+    Called synchronously from login/register routes.
+    """
+    _, jti = decode_access_token_with_jti(response.access_token)
+    _run_async(set_active_session_async(response.user.id, jti))
+
+
+def _run_async(coro):
+    """Run a single async coroutine from a sync context."""
+    import asyncio
+
+    try:
+        asyncio.run(coro)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(coro)
+        finally:
+            loop.close()

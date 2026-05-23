@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { adminCreateUser, adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, adminGetOnlineUsers, adminGetDauStats, getCurrentUser, login, setToken } from "./api.js";
+import { adminCreateUser, adminDeleteUser, adminListConversations, adminGetConversationMessages, adminListUsers, adminUpdatePassword, adminGetOnlineUsers, adminGetDauStats, getCurrentUser, login, setToken, adminCheckSession, onAdminSessionKicked } from "./api.js";
 
 // ===== Auth state =====
 const username = ref("");
@@ -46,6 +46,37 @@ function stopOnlinePolling() {
     onlinePollTimer = null;
   }
 }
+
+// ===== Session check (single-device login) =====
+const kickedMessage = ref("");
+let sessionCheckTimer = null;
+
+function startSessionCheck() {
+  stopSessionCheck();
+  adminCheckSession();
+  sessionCheckTimer = setInterval(adminCheckSession, 30000);
+}
+
+function stopSessionCheck() {
+  if (sessionCheckTimer) {
+    clearInterval(sessionCheckTimer);
+    sessionCheckTimer = null;
+  }
+}
+
+function forceLogoutKicked(msg) {
+  kickedMessage.value = msg;
+  stopOnlinePolling();
+  stopSessionCheck();
+  setToken("");
+  authenticated.value = false;
+  currentUser.value = null;
+  users.value = [];
+}
+
+onAdminSessionKicked((msg) => {
+  forceLogoutKicked(msg);
+});
 
 // ===== DAU stats =====
 const dauStats = ref(null);
@@ -113,6 +144,7 @@ async function handleLogin() {
     password.value = "";
     await loadUsers();
     startOnlinePolling();
+    startSessionCheck();
     loadDauStats();
   } catch (error) {
     authError.value = error.message;
@@ -123,6 +155,7 @@ async function handleLogin() {
 
 function handleLogout() {
   stopOnlinePolling();
+  stopSessionCheck();
   setToken("");
   authenticated.value = false;
   currentUser.value = null;
@@ -288,6 +321,7 @@ async function restoreSession() {
     if (authenticated.value) {
       await loadUsers();
       startOnlinePolling();
+      startSessionCheck();
       loadDauStats();
     }
   } catch {
@@ -305,6 +339,7 @@ onMounted(restoreSession);
     <!-- Login -->
     <main v-if="!authenticated" class="login-page">
       <div class="login-card">
+        <div v-if="kickedMessage" class="kicked-banner">{{ kickedMessage }}</div>
         <div class="login-icon">🔧</div>
         <h1 class="login-title">管理后台</h1>
         <p class="login-subtitle">LangWeave 用户管理系统</p>
@@ -673,6 +708,19 @@ body {
   font-size: 0.78rem;
   color: var(--fg3);
   padding: 2rem 0;
+}
+
+/* ===== Kicked banner ===== */
+.kicked-banner {
+  background: #fef0f0;
+  color: #d06050;
+  border: 1px solid #f5c6c6;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: center;
 }
 
 /* ===== Login ===== */

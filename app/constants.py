@@ -35,3 +35,6 @@ API_V1_AUTH = f"{API_V1_PREFIX}/auth"
 API_V1_EMOTIONAL_CHAT = f"{API_V1_PREFIX}/emotional-chat"
 API_V1_INTENT = f"{API_V1_PREFIX}/intent"
 API_V1_SESSIONS = f"{API_V1_PREFIX}/sessions"
+
+# Redis key prefix — all cache keys use this namespace
+REDIS_KEY_PREFIX = "chat:"

@@ -9,8 +9,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
-from app.application.security import decode_access_token, get_auth_settings, verify_request_signature
+from app.application.security import (
+    decode_access_token_with_jti,
+    get_auth_settings,
+    verify_request_signature,
+)
 from app.application.services.auth import AuthService
+from app.infrastructure.cache.session import get_active_session_sync
 from app.infrastructure.cache.token_blacklist import is_token_blacklisted_sync
 from app.application.services.emotional_chat import EmotionalChatService
 from app.application.services.intent import IntentService
@@ -65,7 +70,16 @@ def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
             )
-        user_id = decode_access_token(token)
+        user_id, jti = decode_access_token_with_jti(token)
+
+        # Single-device login check: active session must match this jti
+        active_jti = get_active_session_sync(user_id)
+        if active_jti is not None and active_jti != jti:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been replaced — logged in elsewhere",
+            )
+
         return auth_service.get_user(user_id)
     except (JWTError, ValueError) as exc:
         raise HTTPException(

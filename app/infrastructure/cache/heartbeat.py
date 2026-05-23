@@ -17,11 +17,12 @@ import json
 import logging
 import time
 
+from app.constants import REDIS_KEY_PREFIX
 from app.infrastructure.cache import get_redis, get_sync_redis
 
 logger = logging.getLogger(__name__)
 
-HEARTBEAT_PREFIX = "heartbeat:users"
+HEARTBEAT_PREFIX = f"{REDIS_KEY_PREFIX}heartbeat:users"
 HEARTBEAT_TTL = 90  # seconds — mark offline if no heartbeat for 90s
 HEARTBEAT_INTERVAL = 30  # seconds — client should ping every 30s
 
