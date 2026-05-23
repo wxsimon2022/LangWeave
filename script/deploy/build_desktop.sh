@@ -14,6 +14,9 @@ set -euo pipefail
 #
 # Environment:
 #   CI_SKIP_DESKTOP  — set to any value to skip the build
+#   DESKTOP_VERSION  — explicit version string (e.g. "1.0.25"); if unset,
+#                      reads from ROOT_DIR's DEPLOY_VERSION file (written by deploy_all.sh)
+#                      or falls back to package.json version
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DESKTOP_DIR="$ROOT_DIR/frontends/desktop"
@@ -28,6 +31,21 @@ fi
 echo "[desktop] Building desktop client (macOS + Windows)"
 
 cd "$DESKTOP_DIR"
+
+# --- Sync package.json version ---
+DESKTOP_VERSION="${DESKTOP_VERSION:-}"
+if [[ -z "$DESKTOP_VERSION" && -f "$ROOT_DIR/.deploy-version" ]]; then
+  DESKTOP_VERSION="$(cat "$ROOT_DIR/.deploy-version" | tr -d '[:space:]' | sed 's/^v//')"
+fi
+if [[ -n "$DESKTOP_VERSION" ]]; then
+  echo "[desktop] Setting package.json version to $DESKTOP_VERSION"
+  # Use node to safely update package.json
+  node -e "
+    const pkg = require('$DESKTOP_DIR/package.json');
+    pkg.version = '$DESKTOP_VERSION';
+    require('fs').writeFileSync('$DESKTOP_DIR/package.json', JSON.stringify(pkg, null, 2) + '\n');
+  "
+fi
 
 # 使用国内镜像加速 Electron 下载
 export ELECTRON_MIRROR="${ELECTRON_MIRROR:-https://npmmirror.com/mirrors/electron/}"
@@ -54,5 +72,12 @@ if [ -d "$DESKTOP_DIR/release" ]; then
   echo "[desktop] Copied artifacts:"
   ls -lh "$RELEASE_DIR/frontend/desktop/" 2>/dev/null || true
 fi
+
+# --- Restore package.json to prevent dirty git state ---
+node -e "
+  const pkg = require('$DESKTOP_DIR/package.json');
+  pkg.version = '1.0.0';
+  require('fs').writeFileSync('$DESKTOP_DIR/package.json', JSON.stringify(pkg, null, 2) + '\n');
+"
 
 echo "[desktop] Done."

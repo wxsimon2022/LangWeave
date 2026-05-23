@@ -213,7 +213,14 @@ echo "---"
 DESKTOP_BUILD_SCRIPT="$ROOT_DIR/script/deploy/build_desktop.sh"
 if [ -f "$DESKTOP_BUILD_SCRIPT" ]; then
   echo "Desktop build: building client before release..."
+
+  # 将 next tag 写入版本文件，供 build_desktop.sh 读取同步 package.json
+  echo "${NEXT_TAG#v}" > "$ROOT_DIR/.deploy-version"
+
   bash "$DESKTOP_BUILD_SCRIPT" 2>&1 || echo "Desktop build failed (continuing with release anyway)"
+
+  # 清理版本文件
+  rm -f "$ROOT_DIR/.deploy-version"
 fi
 
 PUBLISH_SCRIPT="$ROOT_DIR/script/deploy/publish_release.sh"

@@ -49,7 +49,6 @@ flowchart TB
    ▼
 ┌───────────────────────────────────────────────┐
 │  POST /api/v1/unified/stream                  │  ← 统一入口（SSE 流式）
-│  POST /api/v1/chat/stream                     │  ← 旧版入口（向后兼容）
 │    │                                           │
 │    ▼                                           │
 │  IntentService.recognize()                     │  ← intent Agent 分类意图
@@ -157,13 +156,12 @@ LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/v1/unified/stream` | **入口 Agent（新版）** — SSE 流式，先识别意图后路由 |
-| POST | `/api/v1/chat/stream` | **入口 Agent（旧版）** — 同上，向后兼容 |
-| GET | `/api/v1/conversations` | 列出所有对话（新版） |
-| GET | `/api/v1/conversations/{id}/history` | 分页查看对话历史（新版） |
-| DELETE | `/api/v1/conversations/{id}/history` | 清空对话历史（新版） |
-| DELETE | `/api/v1/conversations/{id}` | 删除整个对话（新版） |
-| PATCH | `/api/v1/conversations/{id}` | 修改对话名称（新版） |
+| POST | `/api/v1/unified/stream` | **统一入口** — SSE 流式，先识别意图后路由 |
+| GET | `/api/v1/conversations` | 列出所有对话 |
+| GET | `/api/v1/conversations/{id}/history` | 分页查看对话历史 |
+| DELETE | `/api/v1/conversations/{id}/history` | 清空对话历史 |
+| DELETE | `/api/v1/conversations/{id}` | 删除整个对话 |
+| PATCH | `/api/v1/conversations/{id}` | 修改对话名称 |
 
 SSE 事件：
 
@@ -179,30 +177,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"message": "我最近好焦虑，心情很差..."}'
-# 返回 SSE：intent → chunk → chunk → ... → done
 ```
-
-### 情感聊天（旧版，向后兼容）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/emotional-chat/stream` | SSE 流式（直接走 emotional Agent，无意图路由） |
-| GET | `/api/v1/emotional-chat/conversations` | 仅列出 emotional Agent 的对话 |
-| GET | `/api/v1/emotional-chat/history` | 查看历史 |
-| POST | `/api/v1/emotional-chat/messages` | 同步发送消息 |
-| DELETE | `/api/v1/emotional-chat/history` | 清空历史 |
-| PATCH | `/api/v1/emotional-chat/conversations/{id}` | 重命名 |
-
-### 意图识别（内部接口）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/intent/recognize` | 仅识别意图（结构化输出） |
-| POST | `/api/v1/intent/chat` | 识别 + 路由到 target_agent 并回复 |
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/intent/recognize \
-  -H "Content-Type: application/json" \
   -d '{"message": "帮我查订单10001到哪了"}'
 ```
 

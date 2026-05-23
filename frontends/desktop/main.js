@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Notification } = require("electron");
 const path = require("path");
 const https = require("https");
 
@@ -7,7 +7,8 @@ const https = require("https");
 // ---------------------------------------------------------------------------
 const APP_URL = process.env.LANGWEAVE_URL || "https://chat.mybfs.cn/app.html";
 const GITHUB_REPO = "wxsimon2022/LangWeave";
-const CURRENT_VERSION = app.getVersion(); // 从 package.json version 读取
+const CURRENT_VERSION = app.getVersion();
+const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 每 6 小时检查一次
 
 // ---------------------------------------------------------------------------
 // GitHub Release helpers
@@ -59,10 +60,11 @@ function compareVersions(a, b) {
   return 0;
 }
 
-// ---------------------------------------------------------------------------
-// IPC handlers
-// ---------------------------------------------------------------------------
-ipcMain.handle("check-for-update", async () => {
+/**
+ * Check for a new version.
+ * Returns { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes }.
+ */
+async function checkForUpdate() {
   try {
     const release = await fetchLatestRelease();
     const latestTag = release.tagName;
@@ -77,6 +79,48 @@ ipcMain.handle("check-for-update", async () => {
   } catch (err) {
     return { hasUpdate: false, error: err.message };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Send update info to the renderer
+// ---------------------------------------------------------------------------
+function notifyRendererOfUpdate(info) {
+  const wins = BrowserWindow.getAllWindows();
+  for (const win of wins) {
+    if (!win.isDestroyed()) {
+      win.webContents.send("update-check-result", info);
+    }
+  }
+}
+
+async function performUpdateCheck(silent = false) {
+  const info = await checkForUpdate();
+  if (info.hasUpdate) {
+    notifyRendererOfUpdate(info);
+
+    // Show native notification if the renderer isn't ready yet
+    if (silent && Notification.isSupported()) {
+      const notif = new Notification({
+        title: "LangWeave 有新版本",
+        body: `版本 ${info.latestVersion} 已发布，点击查看详情`,
+      });
+      notif.on("click", () => {
+        const wins = BrowserWindow.getAllWindows();
+        if (wins.length > 0 && !wins[0].isDestroyed()) {
+          wins[0].focus();
+        }
+      });
+      notif.show();
+    }
+  }
+  return info;
+}
+
+// ---------------------------------------------------------------------------
+// IPC handlers
+// ---------------------------------------------------------------------------
+ipcMain.handle("check-for-update", async () => {
+  return performUpdateCheck();
 });
 
 ipcMain.handle("get-app-version", () => {
@@ -98,8 +142,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth: 500,
+    minHeight: 400,
     title: "LangWeave",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -108,10 +152,16 @@ function createWindow() {
     },
   });
 
+  mainWindow.maximize();
   mainWindow.loadURL(APP_URL);
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+
+  // After the window loads, check for updates silently
+  mainWindow.webContents.on("did-finish-load", () => {
+    performUpdateCheck(true);
   });
 }
 
@@ -128,3 +178,6 @@ app.on("activate", () => {
     createWindow();
   }
 });
+
+// Periodic background update check
+setInterval(() => performUpdateCheck(true), UPDATE_CHECK_INTERVAL_MS);

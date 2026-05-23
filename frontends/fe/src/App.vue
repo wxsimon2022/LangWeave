@@ -17,10 +17,17 @@ import {
   updateConversationTitleV2,
 } from "./api/client";
 
+// --- Electron detection ---
+const isElectron = ref(
+  navigator.userAgent.toLowerCase().includes("electron") ||
+  typeof window.electronAPI !== "undefined"
+);
+
 // --- Desktop version & update check ---
 const desktopVersion = ref("");
 const updateInfo = ref(null); // { hasUpdate, currentVersion, latestVersion, releaseUrl, releaseNotes } | null
 const updateDismissed = ref(false);
+const updateChecking = ref(false);
 
 function getElectronAPI() {
   return window.electronAPI || null;
@@ -39,6 +46,7 @@ async function loadDesktopVersion() {
 async function checkDesktopUpdate() {
   const api = getElectronAPI();
   if (!api || typeof api.checkForUpdate !== "function") return;
+  updateChecking.value = true;
   try {
     const result = await api.checkForUpdate();
     if (result.hasUpdate) {
@@ -46,6 +54,8 @@ async function checkDesktopUpdate() {
     }
   } catch {
     // silently fail
+  } finally {
+    updateChecking.value = false;
   }
 }
 
@@ -57,6 +67,31 @@ function openReleaseUrl() {
   const api = getElectronAPI();
   if (api && updateInfo.value?.releaseUrl) {
     api.openReleaseUrl(updateInfo.value.releaseUrl);
+  }
+}
+
+// Listen for auto-update results pushed from the main process (startup / periodic)
+let _unsubscribeUpdate = null;
+function setupUpdateListener() {
+  const api = getElectronAPI();
+  if (!api || typeof api.onUpdateCheckResult !== "function") return;
+  _unsubscribeUpdate = api.onUpdateCheckResult((info) => {
+    if (info.hasUpdate) {
+      updateInfo.value = info;
+    }
+  });
+}
+
+// Periodic update check (every 5 minutes while the app is open)
+let _updateTimer = null;
+function startPeriodicUpdateCheck() {
+  stopPeriodicUpdateCheck();
+  _updateTimer = setInterval(checkDesktopUpdate, 5 * 60 * 1000);
+}
+function stopPeriodicUpdateCheck() {
+  if (_updateTimer) {
+    clearInterval(_updateTimer);
+    _updateTimer = null;
   }
 }
 
@@ -624,12 +659,14 @@ onMounted(() => {
   loadHealth();
   restoreSession();
   loadDesktopVersion();
+  setupUpdateListener();
   checkDesktopUpdate();
+  startPeriodicUpdateCheck();
 });
 </script>
 
 <template>
-  <div class="app">
+  <div class="app" :class="{ 'electron-fullscreen': isElectron }">
     <!-- Desktop update notification -->
     <div v-if="updateInfo && !updateDismissed" class="update-banner">
       <div class="update-banner-content">
@@ -638,8 +675,11 @@ onMounted(() => {
           <strong>发现新版本 {{ updateInfo.latestVersion }}</strong>
           （当前 {{ updateInfo.currentVersion }}）
         </span>
-        <button class="update-btn" @click="openReleaseUrl">立即下载</button>
+        <button class="update-btn" @click="openReleaseUrl">查看详情</button>
         <button class="update-close" @click="dismissUpdate" title="忽略">✕</button>
+      </div>
+      <div v-if="updateInfo.releaseNotes" class="update-release-notes">
+        <pre>{{ updateInfo.releaseNotes }}</pre>
       </div>
     </div>
 
@@ -761,6 +801,17 @@ onMounted(() => {
           </div>
           <div class="chat-head-right">
             <button class="btn ghost" type="button" @click="startNewConversation">新对话</button>
+            <span v-if="desktopVersion" class="version-in-head">
+              <span class="version-badge">v{{ desktopVersion }}</span>
+              <button
+                v-if="!updateChecking"
+                class="version-check-btn"
+                type="button"
+                title="检查更新"
+                @click="checkDesktopUpdate"
+              >↻</button>
+              <span v-else class="version-checking">↻</span>
+            </span>
             <button class="btn ghost" type="button" @click="handleLogout">退出</button>
           </div>
         </header>
@@ -806,9 +857,19 @@ onMounted(() => {
         </form>
       </div>
 
-      <!-- Desktop version badge -->
-      <div v-if="desktopVersion" class="desktop-version">
-        LangWeave Desktop v{{ desktopVersion }}
+      <!-- Desktop version badge & manual update check (hidden in Electron, shown in browser) -->
+      <div v-if="desktopVersion && !isElectron" class="desktop-version">
+        <span>
+          LangWeave Desktop v{{ desktopVersion }}
+          <button
+            v-if="!updateChecking"
+            class="version-check-btn"
+            type="button"
+            title="检查更新"
+            @click="checkDesktopUpdate"
+          >检查更新</button>
+          <span v-else class="version-checking">检查中…</span>
+        </span>
       </div>
     </main>
   </div>
@@ -1218,6 +1279,23 @@ main { width: 100%; }
   gap: 0.15rem;
 }
 
+/* --- Version in head (Electron) --- */
+.version-in-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0 0.3rem;
+  user-select: none;
+}
+.version-badge {
+  font-size: 0.68rem;
+  color: var(--fg3);
+  background: rgba(0,0,0,0.04);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
 /* --- Messages --- */
 .msgs {
   flex: 1;
@@ -1529,6 +1607,49 @@ main { width: 100%; }
   user-select: none;
   cursor: default;
 }
+.desktop-version span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.version-check-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.6rem;
+  color: var(--fg2);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1.5;
+}
+.version-check-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+.version-checking {
+  font-size: 0.6rem;
+  color: var(--accent);
+}
+
+/* ===== Update release notes ===== */
+.update-release-notes {
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0,0,0,0.04);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--fg2);
+}
+.update-release-notes pre {
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 /* ===== Kicked banner ===== */
 .kicked-banner {
@@ -1541,5 +1662,33 @@ main { width: 100%; }
   font-size: 0.82rem;
   font-weight: 500;
   text-align: center;
+}
+
+/* ===== Electron fullscreen override ===== */
+.electron-fullscreen {
+  --radius: 0;
+}
+.electron-fullscreen .app {
+  min-height: 100vh;
+}
+.electron-fullscreen .chat-layout {
+  max-width: none;
+  height: 100vh;
+  box-shadow: none;
+}
+.electron-fullscreen .auth-card {
+  max-width: 400px;
+}
+.electron-fullscreen .msgs {
+  padding: 0.75rem 1.5rem;
+}
+.electron-fullscreen .composer {
+  padding: 0.75rem 1.5rem;
+}
+.electron-fullscreen .chat-head {
+  padding: 0.6rem 1.5rem;
+}
+.electron-fullscreen .side {
+  width: 280px;
 }
 </style>

@@ -17,7 +17,6 @@ from app.application.security import (
 from app.application.services.auth import AuthService
 from app.infrastructure.cache.session import get_active_session_sync
 from app.infrastructure.cache.token_blacklist import is_token_blacklisted_sync
-from app.application.services.emotional_chat import EmotionalChatService
 from app.application.services.intent import IntentService
 from app.application.services.session import SessionService
 from app.infrastructure.persistence.database import get_db_session
@@ -102,9 +101,7 @@ def get_current_admin_user(
 # Type aliases for cleaner dependency injection
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DBSession = Annotated[Session, Depends(get_db_session)]
-IntentServiceDep = Annotated[IntentService, Depends(get_intent_service)]
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]
-EmotionalChatServiceDep = Annotated[EmotionalChatService, Depends(get_emotional_chat_service)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
