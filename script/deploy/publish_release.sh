@@ -2,9 +2,9 @@
 # publish_release.sh — Create a GitHub Release and upload desktop build artifacts
 #
 # Prerequisites:
-#   1. gh CLI installed (https://cli.github.com/)
-#   2. gh auth login
-#   3. Desktop builds exist in frontends/desktop/release/
+#   1. gh CLI installed (https://cli.github.com/) OR
+#      GITHUB_TOKEN environment variable set (GitHub Personal Access Token)
+#   2. Desktop builds exist in frontends/desktop/release/
 #
 # Usage (in project root):
 #   bash script/deploy/publish_release.sh [TAG]
@@ -15,6 +15,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DESKTOP_DIR="$ROOT_DIR/frontends/desktop"
+REPO="wxsimon2022/LangWeave"
 
 cd "$ROOT_DIR"
 
@@ -52,8 +53,13 @@ ASSETS=()
 if [ -d "$DESKTOP_DIR/release" ]; then
   while IFS= read -r -d '' f; do
     ASSETS+=("$f")
-  done < <(find "$DESKTOP_DIR/release" -maxdepth 2 \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \) -print0)
+  done < <(find "$DESKTOP_DIR/release" -maxdepth 2 \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" \) -print0)
 fi
+
+echo "Found ${#ASSETS[@]} desktop build artifact(s):"
+for a in "${ASSETS[@]}"; do
+  echo "  - $a"
+done
 
 # ---------------------------------------------------------------------------
 # Create release notes
@@ -63,12 +69,12 @@ RELEASE_NOTES=$(cat <<EOF
 ## LangWeave Desktop $TAG
 
 📦 **Desktop Client**
-- macOS: \`LangWeave-$TAG.dmg\` (Intel \& Apple Silicon)
+- macOS: \`LangWeave-$TAG.dmg\` (Intel & Apple Silicon)
 - Windows: \`LangWeave-$TAG.exe\` (64-bit installer)
 - Linux: \`LangWeave-$TAG.AppImage\`
 
 🌐 **Web App**
-- [https://chat.mybfs.cn/](${TAG})
+- [https://chat.mybfs.cn/](https://chat.mybfs.cn/)
 
 \`\`\`
 Commit: $MAIN_HASH
@@ -78,23 +84,73 @@ EOF
 )
 
 # ---------------------------------------------------------------------------
-# Create or update GitHub Release
+# Create GitHub Release
 # ---------------------------------------------------------------------------
-echo "Creating release $TAG on GitHub..."
+echo "Creating release $TAG on GitHub ($REPO)..."
 
 if command -v gh &>/dev/null; then
-  # Use gh CLI (recommended)
+  # ── Method 1: gh CLI ──
+  echo "Using gh CLI..."
   RELEASE_URL=$(gh release create "$TAG" \
+    --repo "$REPO" \
     --title "LangWeave $TAG" \
     --notes "$RELEASE_NOTES" \
     "${ASSETS[@]}" 2>&1)
   echo "Release created: $RELEASE_URL"
+
+elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  # ── Method 2: GitHub API via curl ──
+  echo "Using GitHub API with GITHUB_TOKEN..."
+
+  API_URL="https://api.github.com/repos/$REPO/releases"
+
+  # Create release
+  RESPONSE=$(curl -s -X POST "$API_URL" \
+    -H "Authorization: token $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$(cat <<PAYLOAD
+{
+  "tag_name": "$TAG",
+  "name": "LangWeave $TAG",
+  "body": $(echo "$RELEASE_NOTES" | jq -Rs '.'),
+  "draft": false,
+  "prerelease": false
+}
+PAYLOAD
+  )")
+
+  RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+  RELEASE_HTML_URL=$(echo "$RESPONSE" | jq -r '.html_url // empty')
+
+  if [[ -z "$RELEASE_ID" ]]; then
+    echo "ERROR: Failed to create release:"
+    echo "$RESPONSE" | jq .
+    exit 1
+  fi
+
+  echo "Release created: $RELEASE_HTML_URL (id: $RELEASE_ID)"
+
+  # Upload each asset
+  for asset in "${ASSETS[@]}"; do
+    BASENAME=$(basename "$asset")
+    echo "Uploading $BASENAME..."
+    UPLOAD_URL="https://uploads.github.com/repos/$REPO/releases/$RELEASE_ID/assets?name=$BASENAME"
+    curl -s -X POST "$UPLOAD_URL" \
+      -H "Authorization: token $GITHUB_TOKEN" \
+      -H "Content-Type: application/octet-stream" \
+      --data-binary @"$asset" > /dev/null
+    echo "  ✓ $BASENAME uploaded"
+  done
+
 else
-  echo "ERROR: gh CLI not found. Install it from https://cli.github.com/"
-  echo "Then run: gh auth login"
+  echo "ERROR: No authentication method available."
   echo ""
-  echo "Alternatively, create the release manually at:"
-  echo "  https://github.com/wxsimon2022/LangWeave/releases/new?tag=$TAG"
+  echo "Install gh CLI and run 'gh auth login', or set GITHUB_TOKEN environment variable."
+  echo ""
+  echo "Get a token at: https://github.com/settings/tokens"
+  echo ""
+  echo "Or create the release manually at:"
+  echo "  https://github.com/$REPO/releases/new?tag=$TAG"
   exit 1
 fi
 

@@ -73,8 +73,8 @@ rsync -a "$ADMIN_DIR/dist/" "$RELEASE_DIR/admin/"
 # Copy desktop builds into frontend/desktop/ so downloads are served from /desktop/
 if [ -d "$DESKTOP_DIR/release" ]; then
   mkdir -p "$RELEASE_DIR/frontend/desktop"
-  # Find and copy .dmg and .exe files
-  find "$DESKTOP_DIR/release" -maxdepth 2 \( -name "*.dmg" -o -name "*.exe" \) -exec cp {} "$RELEASE_DIR/frontend/desktop/" \;
+  # Find and copy desktop installer files
+  find "$DESKTOP_DIR/release" -maxdepth 2 \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" \) -exec cp {} "$RELEASE_DIR/frontend/desktop/" \;
 fi
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn.key "$RELEASE_DIR/ssl/"
 cp "$ROOT_DIR"/script/chat.mybfs.cn_nginx/chat.mybfs.cn_bundle.pem "$RELEASE_DIR/ssl/"
@@ -194,9 +194,29 @@ fi
 echo "Git: tagging $NEXT_TAG ..."
 git tag "$NEXT_TAG"
 
-echo "Git: pushing to origin main ..."
+echo "Git: pushing to origin master ..."
 git push origin master --tags 2>&1
 echo "Git: tagged and pushed $NEXT_TAG"
+echo "---"
+
+# ---------------------------------------------------------------------------
+# GitHub Release: upload desktop builds
+# ---------------------------------------------------------------------------
+PUBLISH_SCRIPT="$ROOT_DIR/script/deploy/publish_release.sh"
+if [ -f "$PUBLISH_SCRIPT" ]; then
+  if command -v gh &>/dev/null; then
+    echo "GitHub Release: creating release and uploading desktop builds..."
+    bash "$PUBLISH_SCRIPT" "$NEXT_TAG" 2>&1 || echo "GitHub Release skipped (see above for details)"
+  elif [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    echo "GitHub Release: creating release via API..."
+    bash "$PUBLISH_SCRIPT" "$NEXT_TAG" 2>&1 || echo "GitHub Release skipped (see above for details)"
+  else
+    echo "GitHub Release: gh CLI not found and GITHUB_TOKEN not set. Skipping."
+    echo "  Install gh: https://cli.github.com/"
+    echo "  Or set GITHUB_TOKEN env var."
+    echo "  Then run: bash $PUBLISH_SCRIPT $NEXT_TAG"
+  fi
+fi
 echo "---"
 
 cat <<EOF
