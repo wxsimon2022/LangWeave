@@ -3,18 +3,18 @@ import { computed, nextTick, onMounted, ref } from "vue";
 
 import {
   checkHealth,
-  fetchChatHistory,
   getCurrentUser,
-  listConversations,
   login,
   register,
-  deleteConversation,
-  updateConversationTitle,
   setToken,
   sendHeartbeat,
   checkSession,
   onSessionKicked,
-  streamEmotionalMessage,
+  streamChatMessage,
+  listAllConversations,
+  fetchChatHistoryV2,
+  deleteConversationV2,
+  updateConversationTitleV2,
 } from "./api/client";
 
 // --- Desktop version & update check ---
@@ -285,7 +285,7 @@ async function loadOlderMessages() {
   loadingOlder.value = true;
   try {
     const newOffset = loadingOffset.value + PAGE_LIMIT;
-    const response = await fetchChatHistory(activeConvId.value, newOffset, PAGE_LIMIT);
+    const response = await fetchChatHistoryV2(activeConvId.value, newOffset, PAGE_LIMIT);
     const data = response?.data;
     if (!data) return;
 
@@ -360,7 +360,7 @@ async function restoreSession() {
 
 async function refreshConversationList() {
   try {
-    const response = await listConversations();
+    const response = await listAllConversations();
     conversations.value = response?.data?.conversations || [];
   } catch {
     // silent
@@ -374,7 +374,7 @@ async function loadConversation(convId) {
   hasMoreMessages.value = false;
   historyLoaded.value = false;
 
-  const response = await fetchChatHistory(convId, 0, PAGE_LIMIT);
+  const response = await fetchChatHistoryV2(convId, 0, PAGE_LIMIT);
   const data = response?.data;
   loadingOffset.value = 0;
   hasMoreMessages.value = data?.has_more ?? false;
@@ -404,7 +404,7 @@ async function startNewConversation() {
 async function handleDeleteConversation(convId) {
   if (!confirm("确定删除这个对话？")) return;
   try {
-    await deleteConversation(convId);
+    await deleteConversationV2(convId);
     await refreshConversationList();
     if (activeConvId.value === convId) {
       if (conversations.value.length > 0) {
@@ -451,7 +451,7 @@ async function submitRename() {
     const oldTitle = conv.title;
     conv.title = title;
     try {
-      await updateConversationTitle(convId, title);
+      await updateConversationTitleV2(convId, title);
     } catch {
       conv.title = oldTitle; // rollback on failure
     }
@@ -546,7 +546,15 @@ async function handleSend() {
   scrollToBottom();
 
   try {
-    await streamEmotionalMessage(content, activeConvId.value, {
+    await streamChatMessage(content, activeConvId.value, {
+      onIntent(payload) {
+        const target = messages.value.find((m) => m.id === pendingAssistantId);
+        if (target) {
+          const agentLabel = payload?.target_agent === "emotional" ? "情感陪伴" : "AI 助手";
+          target.meta = `识别意图: ${payload?.intent || "unknown"} → ${agentLabel}`;
+          target.text = "";
+        }
+      },
       onChunk(payload) {
         const target = messages.value.find((m) => m.id === pendingAssistantId);
         if (target) {

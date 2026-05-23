@@ -177,6 +177,111 @@ export async function streamEmotionalMessage(message, conversationId, handlers =
   }
 }
 
+// --- Unified Chat (entry agent with intent routing) ---
+
+/** List all conversations (from all agents). */
+export function listAllConversations() {
+  return request("/api/v1/chat/conversations", { method: "GET" });
+}
+
+/** Fetch paginated chat history for a conversation. */
+export function fetchChatHistoryV2(conversationId, offset = 0, limit = 50) {
+  return request(
+    `/api/v1/chat/history?conversation_id=${conversationId}&offset=${offset}&limit=${limit}`,
+    { method: "GET" },
+  );
+}
+
+/** Reset / clear history for a conversation. */
+export function resetChatHistoryV2(conversationId) {
+  return request(
+    `/api/v1/chat/history?conversation_id=${conversationId}`,
+    { method: "DELETE" },
+  );
+}
+
+/** Delete a conversation entirely. */
+export function deleteConversationV2(conversationId) {
+  return request(`/api/v1/chat/conversations/${conversationId}`, {
+    method: "DELETE",
+  });
+}
+
+/** Rename a conversation. */
+export function updateConversationTitleV2(conversationId, title) {
+  return request(`/api/v1/chat/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Send a message via the entry-agent chat endpoint.
+ * This first classifies intent via the intent agent, then routes to
+ * the appropriate specialist agent (emotional / assistant).
+ * Returns SSE events: intent, chunk, done, error.
+ */
+export async function streamChatMessage(message, conversationId, handlers = {}) {
+  const token = getToken();
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ message, conversation_id: conversationId }),
+  });
+
+  if (!response.ok || !response.body) {
+    let detail = `Request failed with status ${response.status}`;
+    try {
+      const payload = await response.json();
+      detail = payload?.detail || payload?.message || detail;
+    } catch {
+      // Ignore parse errors and keep generic message.
+    }
+    throw new Error(detail);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() || "";
+
+    for (const part of parts) {
+      const line = part
+        .split("\n")
+        .find((item) => item.startsWith("data: "));
+      if (!line) {
+        continue;
+      }
+      const parsed = JSON.parse(line.slice(6));
+      const event = parsed?.event;
+      const payload = parsed?.payload;
+
+      if (event === "intent") {
+        handlers.onIntent?.(payload);
+      } else if (event === "chunk") {
+        handlers.onChunk?.(payload);
+      } else if (event === "done") {
+        handlers.onDone?.(payload);
+      } else if (event === "error") {
+        handlers.onError?.(payload);
+      }
+    }
+
+    if (done) {
+      break;
+    }
+  }
+}
+
 // --- Heartbeat ---
 
 export async function sendHeartbeat() {
