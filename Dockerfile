@@ -3,6 +3,9 @@
 # =============================================================================
 FROM node:20-alpine AS frontend-builder
 
+# Use China npm mirror for faster downloads
+RUN npm config set registry https://registry.npmmirror.com
+
 WORKDIR /app/frontends/fe
 
 COPY frontends/fe/package.json frontends/fe/package-lock.json* ./
@@ -15,6 +18,13 @@ RUN npm run build
 # Stage 2: Python backend
 # =============================================================================
 FROM python:3.11-slim AS backend
+
+# Use China apt mirror for faster apt-get
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
+    || sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+
+# Use China pip mirror
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
 
@@ -47,14 +57,14 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 # =============================================================================
 FROM nginx:alpine AS production
 
+# Use China apt mirror for faster apk add (if needed)
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 2>/dev/null || true
+
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontends/fe/dist/ /usr/share/nginx/html/
 
 # Copy custom nginx config
 COPY script/deploy/nginx.docker.conf /etc/nginx/conf.d/default.conf
-
-# Copy Python backend from stage 2 (for health checks, can also include the app)
-# Not needed — nginx only serves/proxies in this stage
 
 EXPOSE 80
 

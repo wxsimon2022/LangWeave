@@ -1,5 +1,3 @@
-version: "3.9"
-
 # =============================================================================
 # LangWeave Docker Deployment
 #
@@ -71,7 +69,7 @@ services:
     container_name: langweave-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8088:80"
       # Uncomment for HTTPS (place certs at ./certs/)
       # - "443:443"
     depends_on:
