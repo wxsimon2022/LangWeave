@@ -1,6 +1,28 @@
+# LangWeave robots.txt
+# https://chat.mybfs.cn/robots.txt
+
 User-agent: *
 Allow: /
 Allow: /app.html
+Allow: /manifest.json
 Disallow: /api/
+Disallow: /admin/
+
+# SEO crawlers: allow everything that isn't private
+User-agent: Googlebot
+Allow: /
+Allow: /app.html
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+
+User-agent: Baiduspider
+Allow: /
+Allow: /app.html
+Disallow: /api/
+
+Crawl-delay: 5
 
 Sitemap: https://chat.mybfs.cn/sitemap.xml

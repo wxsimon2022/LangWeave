@@ -284,6 +284,7 @@ const password = ref("");
 const authMode = ref("login");
 const authLoading = ref(false);
 const authenticated = ref(false);
+const authCheckDone = ref(false);
 const currentUser = ref(null);
 const sending = ref(false);
 const status = ref("正在连接后端...");
@@ -419,6 +420,8 @@ async function restoreSession() {
     setToken("");
     authenticated.value = false;
     currentUser.value = null;
+  } finally {
+    authCheckDone.value = true;
   }
 }
 
@@ -760,8 +763,20 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Auth -->
-    <main v-if="!authenticated" class="auth">
+    <!-- Auth check loading -->
+    <main v-if="!authCheckDone && !authenticated" class="auth">
+      <div class="auth-card">
+        <div class="auth-icon">💬</div>
+        <h1 class="auth-title">情感陪伴</h1>
+        <div class="auth-status">
+          <span class="dot" data-tone="pending"></span>
+          <span>{{ status }}</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Login / Register -->
+    <main v-if="authCheckDone && !authenticated" class="auth">
       <div class="auth-card">
         <div v-if="kickedMessage" class="kicked-banner">{{ kickedMessage }}</div>
         <div class="auth-icon">💬</div>
@@ -804,7 +819,7 @@ onUnmounted(() => {
     </main>
 
     <!-- Chat -->
-    <main v-else class="chat-layout">
+    <main v-if="authenticated" class="chat-layout">
       <!-- Overlay for mobile sidebar -->
       <div
         v-if="sidePanelOpen && isMobile"

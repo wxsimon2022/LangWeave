@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" prefix="og: https://ogp.me/ns#">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,12 +7,21 @@
 <!-- ===== Primary Meta Tags ===== -->
 <title>情感陪伴 — AI 情感聊天助手 | LangWeave</title>
 <meta name="description" content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。免费在线使用。" />
-<meta name="keywords" content="AI 聊天,情感陪伴,情感助手,AI 情感支持,在线倾诉,智能聊天机器人,心理健康,AI心理咨询,LangWeave,免费AI聊天" />
+<meta name="keywords" content="AI 聊天,情感陪伴,情感助手,AI 情感支持,在线倾诉,智能聊天机器人,心理健康,AI心理咨询,LangWeave,免费AI聊天,小暖" />
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
 <meta name="author" content="LangWeave" />
 <meta name="application-name" content="LangWeave 情感陪伴" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta name="theme-color" content="#f5f2ef" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="LangWeave" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="canonical" href="https://chat.mybfs.cn/" />
 <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
 <!-- ===== Performance: resource hints ===== -->
 <link rel="dns-prefetch" href="//api.github.com" />
@@ -36,7 +45,7 @@
 <meta name="twitter:title" content="情感陪伴 — AI 情感聊天助手 | LangWeave" />
 <meta name="twitter:description" content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。" />
 
-<!-- ===== JSON-LD Structured Data ===== -->
+<!-- ===== JSON-LD: WebApplication ===== -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -48,9 +57,14 @@
   "operatingSystem": "All",
   "browserRequirements": "Requires JavaScript. Modern browser recommended.",
   "author": { "@type": "Organization", "name": "LangWeave" },
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "featureList": "情感陪伴对话,历史聊天记录,多轮对话记忆,AI 共情回应",
+  "screenshot": "https://chat.mybfs.cn/og-image.png",
+  "softwareVersion": "0.1.0"
 }
 </script>
+
+<!-- ===== JSON-LD: FAQPage ===== -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -80,6 +94,32 @@
 }
 </script>
 
+<!-- ===== JSON-LD: Organization ===== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "LangWeave",
+  "url": "https://chat.mybfs.cn/",
+  "description": "LangWeave 情感陪伴 AI 助手",
+  "foundingDate": "2025"
+}
+</script>
+
+<!-- ===== JSON-LD: BreadcrumbList ===== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "首页", "item": "https://chat.mybfs.cn/" },
+    { "@type": "ListItem", "position": 2, "name": "功能", "item": "https://chat.mybfs.cn/#features" },
+    { "@type": "ListItem", "position": 3, "name": "使用方式", "item": "https://chat.mybfs.cn/#how" },
+    { "@type": "ListItem", "position": 4, "name": "下载桌面端", "item": "https://chat.mybfs.cn/#download" }
+  ]
+}
+</script>
+
 <!-- ===== Inline Critical CSS ===== -->
 <style>
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
@@ -103,6 +143,21 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; height: auto; }
+
+/* ===== Skip-to-content (accessibility) ===== */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 1000;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: top 0.1s;
+}
+.skip-link:focus { top: 0; }
 
 /* ===== Layout ===== */
 .page { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
@@ -264,6 +319,7 @@ nav {
 
 /* ===== Footer ===== */
 footer { text-align: center; padding: 2rem 0; font-size: 0.82rem; color: var(--fg3); border-top: 1px solid #e0d6ce; }
+footer a { color: var(--accent); text-decoration: underline; }
 
 /* ===== Desktop Download ===== */
 .desktop { padding: 5rem 0; }
@@ -279,6 +335,9 @@ footer { text-align: center; padding: 2rem 0; font-size: 0.82rem; color: var(--f
 .download-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
 .download-btn small { display: block; font-weight: 400; font-size: 0.75rem; color: var(--fg3); margin-top: 0.1rem; }
 .download-hint { text-align: center; font-size: 0.85rem; color: var(--fg3); margin-top: 1.2rem; }
+
+/* ===== Structured Data Footer ===== */
+.footer-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 0.5rem; }
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
@@ -306,150 +365,163 @@ footer { text-align: center; padding: 2rem 0; font-size: 0.82rem; color: var(--f
 </head>
 <body>
 
+<!-- Skip to main content (accessibility) -->
+<a href="#main" class="skip-link">跳转到主要内容</a>
+
 <div class="page">
   <!-- Nav -->
-  <nav>
-    <div class="logo">Lang<span>Weave</span></div>
+  <nav aria-label="主导航">
+    <div class="logo" itemscope itemtype="https://schema.org/Organization">
+      <span itemprop="name">Lang<span>Weave</span></span>
+    </div>
     <div class="nav-links">
-      <a href="#features">功能</a>
-      <a href="#how">使用方式</a>
+      <a href="#features" aria-label="功能特性">功能</a>
+      <a href="#how" aria-label="使用方式">使用方式</a>
       <a href="#download" class="btn btn-download" aria-label="下载桌面端">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         下载桌面端
       </a>
       <a href="/app.html" class="btn btn-primary">开始聊天</a>
     </div>
   </nav>
+</div>
 
+<main id="main">
   <!-- Hero -->
-  <section class="hero">
-    <div class="hero-content">
-      <h1>你的私人 <em>情感陪伴</em><br/>AI 聊天助手</h1>
-      <p class="hero-sub">
-        一个温暖、共情的 AI 对话伙伴。随时倾诉，获得理解与陪伴。
-        所有对话自动保存，登录即可继续。
-      </p>
-      <div class="hero-actions">
-        <a href="/app.html" class="btn btn-primary btn-large">开始免费体验</a>
-        <a href="#download" class="btn btn-outline btn-large">下载桌面端</a>
-      </div>
-    </div>
-    <div class="hero-visual">
-      <div class="chat-preview">
-        <div class="preview-msg">
-          <div class="bubble bot">最近心情不太好，总感觉很累……</div>
-          <div class="bubble">我在这里陪着你。愿意多和我说说吗？💛</div>
-          <div class="bubble bot">工作压力很大，晚上也睡不好</div>
-          <div class="bubble">听起来你最近确实承受了很多。慢慢说，我会一直在这里倾听。</div>
+  <div class="page">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <h1 id="hero-title">你的私人 <em>情感陪伴</em><br/>AI 聊天助手</h1>
+        <p class="hero-sub">
+          一个温暖、共情的 AI 对话伙伴。随时倾诉，获得理解与陪伴。
+          所有对话自动保存，登录即可继续。
+        </p>
+        <div class="hero-actions">
+          <a href="/app.html" class="btn btn-primary btn-large">开始免费体验</a>
+          <a href="#download" class="btn btn-outline btn-large">下载桌面端</a>
         </div>
       </div>
-    </div>
-  </section>
-</div>
-
-<!-- Features -->
-<div class="page" id="features">
-  <section class="features">
-    <h2 class="section-title">为什么选择 LangWeave？</h2>
-    <p class="section-sub">温暖、智能、有记忆的 AI 陪伴体验</p>
-    <div class="feature-grid">
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">🧠</span>
-        <h3>多轮记忆</h3>
-        <p>AI 能记住你之前的对话内容，让每一次交流都像老朋友一样自然连贯。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">💬</span>
-        <h3>共情对话</h3>
-        <p>基于先进的语言模型，提供温暖、理解、不评判的情感回应。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">📝</span>
-        <h3>历史存档</h3>
-        <p>所有对话自动保存。随时翻阅过去的交流，回顾自己的心路历程。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">🔄</span>
-        <h3>多对话管理</h3>
-        <p>支持创建多个对话主题，按话题分类，方便管理不同方向的交流。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">🔒</span>
-        <h3>隐私安全</h3>
-        <p>用户认证系统保护你的对话隐私，只有你自己能查看聊天记录。</p>
-      </article>
-      <article class="feature-card">
-        <span class="feature-icon" aria-hidden="true">⚡</span>
-        <h3>实时响应</h3>
-        <p>流式输出技术，AI 回复实时显示，无需等待完整内容生成。</p>
-      </article>
-    </div>
-  </section>
-</div>
-
-<!-- How it works -->
-<div class="page" id="how">
-  <section class="how-it-works">
-    <h2 class="section-title">三步开始使用</h2>
-    <p class="section-sub">简单几步，开启你的 AI 陪伴之旅</p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num" aria-hidden="true">1</div>
-        <h3>注册账号</h3>
-        <p>使用用户名和密码注册，几秒钟即可完成。</p>
+      <div class="hero-visual" aria-label="聊天对话预览">
+        <div class="chat-preview" role="img" aria-label="AI 情感陪伴对话示例：用户倾诉心情不好，AI 温暖回应">
+          <div class="preview-msg">
+            <div class="bubble bot">最近心情不太好，总感觉很累……</div>
+            <div class="bubble">我在这里陪着你。愿意多和我说说吗？💛</div>
+            <div class="bubble bot">工作压力很大，晚上也睡不好</div>
+            <div class="bubble">听起来你最近确实承受了很多。慢慢说，我会一直在这里倾听。</div>
+          </div>
+        </div>
       </div>
-      <div class="step">
-        <div class="step-num" aria-hidden="true">2</div>
-        <h3>开始对话</h3>
-        <p>点击新对话，输入你想说的话，AI 会温暖地回应你。</p>
-      </div>
-      <div class="step">
-        <div class="step-num" aria-hidden="true">3</div>
-        <h3>随时回来</h3>
-        <p>所有对话自动保存，下次登录即可继续之前的交流。</p>
-      </div>
-    </div>
-  </section>
-</div>
+    </section>
+  </div>
 
-<!-- Desktop Download -->
-<div class="page" id="download">
-  <section class="desktop">
-    <h2 class="section-title">下载桌面端</h2>
-    <p class="section-sub">支持 Windows、macOS、Linux，获得更沉浸的陪伴体验</p>
-    <div class="download-grid">
-      <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-mac.dmg" class="download-btn" target="_blank" rel="noopener" aria-label="下载 macOS 版">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06s3-1.06 4-1.06c1-.12 2.5-1.5 3-2.5-1.5-.75-2.5-2.25-2.5-4s1-3 2.5-4C20.5 7 19 6 17 6c-1.5 0-3 .75-4 2s-2.5-2-4-2-2.5.75-4 2S1 9 1 11.5c0 1.75 1 3.25 2.5 4 .5 1 2 2.38 3 2.5 1.25 0 2.5-1.06 4-1.06zM12 5.5C12 3.5 13.5 2 15 2c.5 1.5 0 3-1.5 4-1 .5-1.5-.5-1.5-1.5z"/></svg>
-        <span>macOS <small>Intel &#38; Apple Silicon</small></span>
-      </a>
-      <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-win.exe" class="download-btn" target="_blank" rel="noopener" aria-label="下载 Windows 版">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="8" y1="4" x2="8" y2="20"/><line x1="16" y1="4" x2="16" y2="20"/></svg>
-        <span>Windows <small>64 位安装包</small></span>
-      </a>
-      <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-linux.AppImage" class="download-btn" target="_blank" rel="noopener" aria-label="下载 Linux 版">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-        <span>Linux <small>AppImage</small></span>
-      </a>
-    </div>
-    <p class="download-hint">通过 GitHub 全球 CDN 加速下载。如果下载较慢，可以在<a href="https://github.com/wxsimon2022/LangWeave/releases/latest" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;">GitHub Release 页面</a>选择其他版本。</p>
-  </section>
-</div>
+  <!-- Features -->
+  <div class="page" id="features">
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title" class="section-title">为什么选择 LangWeave？</h2>
+      <p class="section-sub">温暖、智能、有记忆的 AI 陪伴体验</p>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🧠</span>
+          <h3>多轮记忆</h3>
+          <p>AI 能记住你之前的对话内容，让每一次交流都像老朋友一样自然连贯。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">💬</span>
+          <h3>共情对话</h3>
+          <p>基于先进的语言模型，提供温暖、理解、不评判的情感回应。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">📝</span>
+          <h3>历史存档</h3>
+          <p>所有对话自动保存。随时翻阅过去的交流，回顾自己的心路历程。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🔄</span>
+          <h3>多对话管理</h3>
+          <p>支持创建多个对话主题，按话题分类，方便管理不同方向的交流。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🔒</span>
+          <h3>隐私安全</h3>
+          <p>用户认证系统保护你的对话隐私，只有你自己能查看聊天记录。</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon" aria-hidden="true">⚡</span>
+          <h3>实时响应</h3>
+          <p>流式输出技术，AI 回复实时显示，无需等待完整内容生成。</p>
+        </article>
+      </div>
+    </section>
+  </div>
 
-<!-- CTA -->
-<div class="page">
-  <section class="cta">
-    <div class="cta-card">
-      <h2>现在就试试吧</h2>
-      <p>你的专属 AI 情感陪伴，随时在线等你聊天。</p>
-      <a href="/app.html" class="btn">开始免费体验 →</a>
-    </div>
-  </section>
-</div>
+  <!-- How it works -->
+  <div class="page" id="how">
+    <section class="how-it-works" aria-labelledby="how-title">
+      <h2 id="how-title" class="section-title">三步开始使用</h2>
+      <p class="section-sub">简单几步，开启你的 AI 陪伴之旅</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num" aria-hidden="true">1</div>
+          <h3>注册账号</h3>
+          <p>使用用户名和密码注册，几秒钟即可完成。</p>
+        </div>
+        <div class="step">
+          <div class="step-num" aria-hidden="true">2</div>
+          <h3>开始对话</h3>
+          <p>点击新对话，输入你想说的话，AI 会温暖地回应你。</p>
+        </div>
+        <div class="step">
+          <div class="step-num" aria-hidden="true">3</div>
+          <h3>随时回来</h3>
+          <p>所有对话自动保存，下次登录即可继续之前的交流。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Desktop Download -->
+  <div class="page" id="download">
+    <section class="desktop" aria-labelledby="download-title">
+      <h2 id="download-title" class="section-title">下载桌面端</h2>
+      <p class="section-sub">支持 Windows、macOS、Linux，获得更沉浸的陪伴体验</p>
+      <div class="download-grid">
+        <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-mac.dmg" class="download-btn" target="_blank" rel="noopener" aria-label="下载 macOS 版">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06s3-1.06 4-1.06c1-.12 2.5-1.5 3-2.5-1.5-.75-2.5-2.25-2.5-4s1-3 2.5-4C20.5 7 19 6 17 6c-1.5 0-3 .75-4 2s-2.5-2-4-2-2.5.75-4 2S1 9 1 11.5c0 1.75 1 3.25 2.5 4 .5 1 2 2.38 3 2.5 1.25 0 2.5-1.06 4-1.06zM12 5.5C12 3.5 13.5 2 15 2c.5 1.5 0 3-1.5 4-1 .5-1.5-.5-1.5-1.5z"/></svg>
+          <span>macOS <small>Intel &amp; Apple Silicon</small></span>
+        </a>
+        <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-win.exe" class="download-btn" target="_blank" rel="noopener" aria-label="下载 Windows 版">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="8" y1="4" x2="8" y2="20"/><line x1="16" y1="4" x2="16" y2="20"/></svg>
+          <span>Windows <small>64 位安装包</small></span>
+        </a>
+        <a href="https://github.com/wxsimon2022/LangWeave/releases/latest/download/LangWeave-linux.AppImage" class="download-btn" target="_blank" rel="noopener" aria-label="下载 Linux 版">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+          <span>Linux <small>AppImage</small></span>
+        </a>
+      </div>
+      <p class="download-hint">通过 GitHub 全球 CDN 加速下载。如果下载较慢，可以在<a href="https://github.com/wxsimon2022/LangWeave/releases/latest" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;">GitHub Release 页面</a>选择其他版本。</p>
+    </section>
+  </div>
+
+  <!-- CTA -->
+  <div class="page">
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="cta-card">
+        <h2 id="cta-title">现在就试试吧</h2>
+        <p>你的专属 AI 情感陪伴，随时在线等你聊天。</p>
+        <a href="/app.html" class="btn">开始免费体验 →</a>
+      </div>
+    </section>
+  </div>
+</main>
 
 <!-- Footer -->
 <footer>
   <div class="page">
     <p>&copy; 2026 LangWeave. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/app.html">Web 应用</a>
+      <a href="https://github.com/wxsimon2022/LangWeave" target="_blank" rel="noopener">GitHub</a>
+    </div>
   </div>
 </footer>
 

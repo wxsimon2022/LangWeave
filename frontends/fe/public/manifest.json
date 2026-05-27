@@ -1,0 +1,36 @@
+{
+  "name": "LangWeave 情感陪伴",
+  "short_name": "LangWeave",
+  "description": "LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f2ef",
+  "theme_color": "#d9735a",
+  "lang": "zh-CN",
+  "categories": ["health", "lifestyle", "communication"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "LangWeave 情感陪伴主界面"
+    }
+  ]
+}

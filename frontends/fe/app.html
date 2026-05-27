@@ -1,34 +1,50 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" prefix="og: https://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Primary Meta Tags -->
+    <!-- ===== Primary Meta Tags ===== -->
     <title>情感陪伴 — AI 情感聊天助手 | LangWeave</title>
     <meta
       name="description"
-      content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。"
+      content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。免费在线使用，无需下载。"
     />
     <meta
       name="keywords"
-      content="AI 聊天,情感陪伴,情感助手,AI 情感支持,在线倾诉,智能聊天机器人,心理健康,LangWeave"
+      content="AI 聊天,情感陪伴,情感助手,AI 情感支持,在线倾诉,智能聊天机器人,心理健康,AI心理咨询,LangWeave,免费AI聊天,小暖"
     />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="author" content="LangWeave" />
+    <meta name="application-name" content="LangWeave 情感陪伴" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#f5f2ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="LangWeave" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
     <link rel="canonical" href="https://chat.mybfs.cn/" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- ===== Open Graph / Facebook ===== -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://chat.mybfs.cn/" />
     <meta property="og:title" content="情感陪伴 — AI 情感聊天助手 | LangWeave" />
     <meta
       property="og:description"
-      content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。"
+      content="LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。登录即可保存历史聊天记录，随时倾诉您的感受。免费无限使用。"
     />
     <meta property="og:image" content="https://chat.mybfs.cn/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="LangWeave" />
 
-    <!-- Twitter -->
+    <!-- ===== Twitter ===== -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://chat.mybfs.cn/" />
     <meta name="twitter:title" content="情感陪伴 — AI 情感聊天助手 | LangWeave" />
@@ -38,7 +54,7 @@
     />
     <meta name="twitter:image" content="https://chat.mybfs.cn/og-image.png" />
 
-    <!-- JSON-LD Structured Data -->
+    <!-- ===== JSON-LD: WebApplication ===== -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -47,7 +63,8 @@
       "url": "https://chat.mybfs.cn/",
       "description": "LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。",
       "applicationCategory": "HealthApplication",
-      "operatingSystem": "All",
+      "operatingSystem": "All (Web)",
+      "browserRequirements": "Requires JavaScript. Modern browser recommended.",
       "author": {
         "@type": "Organization",
         "name": "LangWeave"
@@ -56,7 +73,40 @@
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "CNY"
-      }
+      },
+      "featureList": "情感陪伴对话,历史聊天记录,多轮对话记忆,AI 共情回应",
+      "screenshot": "https://chat.mybfs.cn/og-image.png",
+      "softwareVersion": "0.1.0"
+    }
+    </script>
+
+    <!-- ===== JSON-LD: FAQPage ===== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "LangWeave 是什么？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LangWeave 是一款 AI 情感陪伴聊天助手，提供温暖、共情的对话支持。它基于先进的 AI 模型，可以记住你的历史对话内容，随时倾听你的感受。"
+        }
+      }, {
+        "@type": "Question",
+        "name": "LangWeave 收费吗？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LangWeave 完全免费使用。注册账号即可开始聊天，所有功能均免费开放。"
+        }
+      }, {
+        "@type": "Question",
+        "name": "对话记录会保存吗？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "是的，所有对话记录自动保存在服务器上。登录后可以随时查看历史聊天记录，继续之前的对话。"
+        }
+      }]
     }
     </script>
   </head>
