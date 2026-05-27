@@ -1,9 +1,7 @@
-"""Multi-turn conversation memory via LangGraph checkpointer.
+"""Multi-turn conversation memory via LangGraph checkpointer (MySQL only).
 
-Supports both in-memory (default) and MySQL-backed persistence.
-When ``LANGWEAVE_DATABASE_URL`` (or ``DATABASE_URL``) starts with ``mysql``
-the checkpointer automatically uses AIOMySQLSaver (async) for compatibility
-with the async FastAPI runtime.
+Requires ``LANGWEAVE_DATABASE_URL`` (or ``DATABASE_URL``) to start with ``mysql``.
+Uses ``AIOMySQLSaver`` (async) for compatibility with the async FastAPI runtime.
 """
 
 from __future__ import annotations
@@ -17,7 +15,7 @@ from typing import Any
 
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver
+
 from langgraph.graph.state import CompiledStateGraph
 
 from langweave.config import load_dotenv
@@ -27,10 +25,8 @@ logger = logging.getLogger(__name__)
 _CHECKPOINT_COLLATION = "utf8mb4_general_ci"
 _CHECKPOINT_DATA_TABLES = ("checkpoints", "checkpoint_blobs", "checkpoint_writes")
 
-
 def _is_mysql_url(url: str) -> bool:
     return url.startswith("mysql") or url.startswith("mysql+pymysql:")
-
 
 def _resolve_url() -> str:
     load_dotenv()
@@ -40,29 +36,31 @@ def _resolve_url() -> str:
         or ""
     )
 
-
 def _normalize_mysql_url(raw_url: str) -> str:
     return raw_url.replace("mysql+pymysql:", "mysql:", 1)
 
-
 @lru_cache
 def get_checkpointer() -> BaseCheckpointSaver:
-    """Return a shared checkpointer.
+    """Return a shared MySQL-backed checkpointer (AIOMySQLSaver).
 
-    When MySQL is configured, returns an AIOMySQLSaver wrapper whose
-    connection is lazily initialised on first async use.
-    Otherwise returns a plain ``MemorySaver``.
+    Requires ``LANGWEAVE_DATABASE_URL`` (or ``DATABASE_URL``) to be set to a MySQL URL.
+    Raises ``RuntimeError`` if no MySQL URL is configured.
 
     This function is **sync** so it can be used in agent builder etc.
-    For MySQL the actual async connection creation is deferred to the
-    first ``await`` call on the checkpointer.
+    The actual async connection creation is deferred to the first ``await``
+    call on the checkpointer (_LazyAsyncCheckpointer).
     """
     url = _resolve_url()
     if not _is_mysql_url(url):
-        return MemorySaver()
+        msg = (
+            "LANGWEAVE_DATABASE_URL is not set or does not use MySQL. "
+            "This application requires MySQL for all environments. "
+            "Set LANGWEAVE_DATABASE_URL=mysql+pymysql://user:pass@host:port/dbname "
+            "in your .env file or environment."
+        )
+        raise RuntimeError(msg)
 
     return _LazyAsyncCheckpointer(url)
-
 
 class _LazyAsyncCheckpointer(BaseCheckpointSaver):
     """Deferred async MySQL checkpointer.
@@ -114,11 +112,9 @@ class _LazyAsyncCheckpointer(BaseCheckpointSaver):
     def list(self, config: dict[str, Any], *, filter: Any = None, before: Any = None, limit: Any = None) -> Any:
         raise NotImplementedError("_LazyAsyncCheckpointer does not support sync list; use alist")
 
-
 async def _apply_session_collation(cur: Any) -> None:
     await cur.execute(f"SET NAMES utf8mb4 COLLATE {_CHECKPOINT_COLLATION}")
     await cur.execute(f"SET collation_connection = {_CHECKPOINT_COLLATION}")
-
 
 async def _normalize_checkpoint_table_collations(cur: Any) -> None:
     for tbl in _CHECKPOINT_DATA_TABLES:
@@ -126,7 +122,6 @@ async def _normalize_checkpoint_table_collations(cur: Any) -> None:
             f"ALTER TABLE {tbl} CONVERT TO CHARACTER SET utf8mb4 "
             f"COLLATE {_CHECKPOINT_COLLATION}"
         )
-
 
 async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
     """Create an AIOMySQLSaver with an async connection."""
@@ -171,14 +166,11 @@ async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
 
     return saver
 
-
 def resolve_thread_id(thread_id: str | None) -> str:
     return thread_id or str(uuid.uuid4())
 
-
 def thread_config(thread_id: str) -> dict[str, Any]:
     return {"configurable": {"thread_id": thread_id}}
-
 
 async def aget_thread_messages(
     graph: CompiledStateGraph[Any, Any, Any, Any],
@@ -190,7 +182,6 @@ async def aget_thread_messages(
     messages = snapshot.values.get("messages", [])
     return list(messages) if messages else []
 
-
 def get_thread_messages(
     graph: CompiledStateGraph[Any, Any, Any, Any],
     thread_id: str,
@@ -200,7 +191,6 @@ def get_thread_messages(
         return []
     messages = snapshot.values.get("messages", [])
     return list(messages) if messages else []
-
 
 async def aclear_thread(
     graph: CompiledStateGraph[Any, Any, Any, Any],

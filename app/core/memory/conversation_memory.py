@@ -1,6 +1,6 @@
 """Memory management — conversation memory and memory store.
 
-Wraps LangGraph checkpointer (volatile MemorySaver or MySQL-backed).
+Wraps MySQL-backed LangGraph checkpointer. See ``langweave.memory``.
 """
 from __future__ import annotations
 

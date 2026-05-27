@@ -44,4 +44,4 @@ def build_emotional_agent(settings: AgentSettings | None = None) -> Agent:
         .with_system_prompt(EMOTIONAL_SYSTEM_PROMPT)
         .with_tools([])
     )
-    return with_conversation_memory(builder, settings, volatile=True).build()
+    return with_conversation_memory(builder, settings).build()
