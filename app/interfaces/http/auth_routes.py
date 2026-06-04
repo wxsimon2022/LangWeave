@@ -1,4 +1,7 @@
-"""Authentication HTTP routes."""
+"""Authentication routes: register, login, refresh, logout, me.
+
+Single-device login stores the active JWT ``jti`` in Redis via ``set_active_session_sync``.
+"""
 
 from __future__ import annotations
 
@@ -65,7 +68,7 @@ def register(
         )
     try:
         response = service.register(body.username, body.password)
-        # Single-device: set active session for new user
+        # Single-device: record this token as the active session
         _replace_active_session(response, body.username)
         return ApiResponse.ok(response)
     except ValueError as exc:

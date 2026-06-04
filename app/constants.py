@@ -29,12 +29,12 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:5174",
 ]
 
-# API
+# API path prefixes
 API_V1_PREFIX = "/api/v1"
 API_V1_AUTH = f"{API_V1_PREFIX}/auth"
-API_V1_EMOTIONAL_CHAT = f"{API_V1_PREFIX}/emotional-chat"
-API_V1_INTENT = f"{API_V1_PREFIX}/intent"
 API_V1_SESSIONS = f"{API_V1_PREFIX}/sessions"
+API_V1_CONVERSATIONS = f"{API_V1_PREFIX}/conversations"
+API_V1_UNIFIED_STREAM = f"{API_V1_PREFIX}/unified/stream"
 
 # Redis key prefix — all cache keys use this namespace
 REDIS_KEY_PREFIX = "chat:"

@@ -58,7 +58,7 @@ async def clear_active_session_async(user_id: int) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Sync (for FastAPI sync dependencies like get_current_user)
+# Sync (login/register/refresh and other sync route handlers)
 # ---------------------------------------------------------------------------
 
 def get_active_session_sync(user_id: int) -> str | None:
@@ -82,7 +82,10 @@ def clear_active_session_sync(user_id: int) -> bool:
 
 
 def set_active_session_sync(user_id: int, jti: str) -> bool:
-    """Sync: store ``jti`` as the active session for ``user_id``."""
+    """Sync: store ``jti`` as the active session for ``user_id``.
+
+    Use from sync auth routes (login/register/refresh) to avoid event-loop conflicts.
+    """
     client = get_sync_redis()
     if client is None:
         return False

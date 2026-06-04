@@ -1,4 +1,4 @@
-"""Schemas for authenticated emotional chat APIs."""
+"""Request/response schemas for unified chat and conversation APIs."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ class EmotionalMessageItem(BaseModel):
 
 
 class EmotionalChatRequest(BaseModel):
-    """Send a new emotional chat message."""
+    """Send a message via POST /api/v1/unified/stream."""
 
     message: str = Field(..., min_length=1)
     conversation_id: int | None = Field(

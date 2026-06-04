@@ -1,6 +1,6 @@
-"""Agent application service — entry-agent chat with intent routing.
+"""Agent application service — unified stream entry with intent routing.
 
-Wraps ``app.application.services.chat.ChatService`` with the new service API.
+Delegates to ``ChatService`` for intent classification and specialist agent dispatch.
 """
 from __future__ import annotations
 

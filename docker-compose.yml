@@ -14,8 +14,8 @@
 #
 # Quick start:
 #   cp .env.example .env          # edit with your secrets
-#   docker compose up -d          # start all services
-#   http://localhost               # access the app
+#   docker compose up -d          # start app + nginx
+#   http://localhost:8088         # chat SPA at /app.html
 #   docker compose down           # stop all services
 #
 # Required environment variables (.env):

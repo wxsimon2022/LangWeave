@@ -1,4 +1,4 @@
-"""Persistent emotional chat backed by DB history and the emotional agent."""
+"""Emotional agent dialogue with DB-backed message history (internal service)."""
 
 from __future__ import annotations
 

@@ -284,6 +284,7 @@ const password = ref("");
 const authMode = ref("login");
 const authLoading = ref(false);
 const authenticated = ref(false);
+/** True after restoreSession() finishes; gates login vs chat UI on refresh. */
 const authCheckDone = ref(false);
 const currentUser = ref(null);
 const sending = ref(false);
@@ -399,6 +400,7 @@ async function loadHealth() {
 }
 
 async function restoreSession() {
+  // Validate JWT via /api/v1/auth/me, then load conversations
   try {
     const response = await getCurrentUser();
     currentUser.value = response?.data || null;

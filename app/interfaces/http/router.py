@@ -1,4 +1,13 @@
-"""Aggregate business routers for application startup."""
+"""Aggregate business HTTP routers.
+
+Mounted routes:
+- ``app.api.v1.agents_unified`` — POST /api/v1/unified/stream
+- ``app.api.v1.conversations`` — /api/v1/conversations/*
+- ``app.interfaces.http.auth_routes`` — /api/v1/auth/*
+- ``app.interfaces.http.heartbeat_routes`` — /api/v1/heartbeat/*
+- ``app.interfaces.http.admin_routes`` — /api/v1/admin/*
+- ``app.interfaces.http.session_routes`` — /api/v1/sessions/*
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI

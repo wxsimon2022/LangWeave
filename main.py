@@ -1,4 +1,4 @@
-"""ASGI entrypoint: uvicorn main:app --reload"""
+"""ASGI entrypoint — ``uvicorn main:app --reload --port 8000``."""
 
 from langweave.config import load_dotenv
 

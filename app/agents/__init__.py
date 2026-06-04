@@ -1,1 +1,1 @@
-"""Agent implementations — research, hewa, intent, fallback, memory."""
+"""Agent implementations: intent, emotional (research), assistant (general), fallback."""

@@ -1,3 +1,10 @@
+/**
+ * LangWeave chat SPA API client.
+ *
+ * Chat: POST /api/v1/unified/stream (SSE)
+ * Conversations: /api/v1/conversations/*
+ * Auth: /api/v1/auth/*
+ */
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
 

@@ -15,13 +15,13 @@ from app.schemas.emotional_chat import (
     ConversationUpdateRequest,
     EmotionalConversationResponse,
 )
-from app.constants import API_V1_PREFIX
+from app.constants import API_V1_CONVERSATIONS
 from langweave.web.response import ApiResponse
 from langweave.registry import AgentRegistry
 from langweave.web.deps import get_registry
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix=f"{API_V1_PREFIX}/conversations", tags=["conversations"])
+router = APIRouter(prefix=API_V1_CONVERSATIONS, tags=["conversations"])
 
 
 # ------------------------------------------------------------------

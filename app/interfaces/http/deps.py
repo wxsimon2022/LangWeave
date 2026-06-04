@@ -1,4 +1,4 @@
-"""FastAPI dependencies for business routes."""
+"""FastAPI dependencies: auth, registry, optional request signing."""
 
 from __future__ import annotations
 
@@ -45,13 +45,6 @@ def get_auth_service(
     return AuthService(db)
 
 
-def get_emotional_chat_service(
-    db: Annotated[Session, Depends(get_db_session)],
-    registry: Annotated[AgentRegistry, Depends(get_registry)],
-) -> EmotionalChatService:
-    return EmotionalChatService(db, registry)
-
-
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
@@ -63,7 +56,7 @@ def get_current_user(
         )
     try:
         token = credentials.credentials
-        # Check token blacklist (logout / revocation)
+        # Check Redis token blacklist
         if is_token_blacklisted_sync(token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -71,7 +64,7 @@ def get_current_user(
             )
         user_id, jti = decode_access_token_with_jti(token)
 
-        # Single-device login check: active session must match this jti
+        # Single-device login: jti must match Redis active session
         active_jti = get_active_session_sync(user_id)
         if active_jti is not None and active_jti != jti:
             raise HTTPException(

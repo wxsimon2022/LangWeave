@@ -1,5 +1,5 @@
 # =============================================================================
-# Stage 1: Build frontend
+# Stage 1: frontend-builder — Vite SPA (entry: app.html)
 # =============================================================================
 FROM node:20-alpine AS frontend-builder
 
@@ -15,7 +15,7 @@ COPY frontends/fe/ .
 RUN npm run build
 
 # =============================================================================
-# Stage 2: Python backend
+# Stage 2: backend — FastAPI (uvicorn main:app)
 # =============================================================================
 FROM python:3.11-slim AS backend
 
@@ -45,15 +45,14 @@ COPY main.py pyproject.toml ./
 
 EXPOSE 8000
 
-# Database and Redis URLs must be provided at runtime via .env or docker-compose.
-# These defaults are for local development only.
+# Runtime DB/Redis URLs from .env or docker-compose
 ENV LANGWEAVE_DATABASE_URL=mysql+pymysql://root:password@127.0.0.1:3306/langweave
 ENV LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # =============================================================================
-# Stage 3: Nginx with built frontend
+# Stage 3: production — nginx + built frontend static files
 # =============================================================================
 FROM nginx:alpine AS production
 

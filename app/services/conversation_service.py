@@ -1,7 +1,4 @@
-"""Conversation management service.
-
-Wraps ``app.application.services.chat.ChatService`` conversation operations.
-"""
+"""Conversation list, history, rename, delete — /api/v1/conversations/*."""
 from __future__ import annotations
 
 from typing import Any

@@ -1,1 +1,1 @@
-"""API v1 routes."""
+"""Business API v1: unified stream and conversation management."""

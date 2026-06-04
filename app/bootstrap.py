@@ -31,7 +31,7 @@ def _seed_admin() -> None:
     """
     session_factory = get_session_factory()
     with session_factory() as session:
-        # 确保 is_admin 列存在（兼容旧表结构）
+        # 启动时自动补全 c_users.is_admin 列
         try:
             session.execute(
                 text("SELECT is_admin FROM c_users LIMIT 1")
