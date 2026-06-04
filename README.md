@@ -4,6 +4,8 @@
 
 > **命名**：Weave = 编织 —— 将模型、工具、中间件与多个 Agent 编织成可运行的图。
 
+📖 **开发指南**：[.cursor/skills/langweave/开发指南.md](.cursor/skills/langweave/开发指南.md)（文档索引：[docs/README.md](docs/README.md)）
+
 ---
 
 ## 架构
@@ -178,8 +180,6 @@ curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
   -H "Content-Type: application/json" \
   -d '{"message": "我最近好焦虑，心情很差..."}'
 ```
-  -d '{"message": "帮我查订单10001到哪了"}'
-```
 
 响应：
 
@@ -266,6 +266,9 @@ npm run dev
 ```
 
 - 默认地址：`http://127.0.0.1:5173`
+- **聊天入口**：`/app.html`（Vite 构建 input）；宣传页为 `/`（`public/index.html`）
+- 本地 dev 将 `/api` 代理到 `http://localhost:8000`；`VITE_API_BASE_URL` 留空即可
+- 登录态：刷新时先 `restoreSession()`，用 `authCheckDone` 避免短暂闪现登录页
 
 ### 管理后台（Vue 3 + Vite）
 
@@ -296,27 +299,31 @@ npm run build
 
 ## 部署
 
-### 全量部署
+两套方式**并存、互不影响**：Bash 脚本用于生产服务器；Docker 用于本地/容器化环境。
+
+### Bash 脚本部署（生产）
 
 ```bash
-./script/deploy/deploy_all.sh
+./script/deploy/deploy_all.sh      # 全量：前端构建 → rsync → 依赖 → 重启 → nginx reload
+./script/deploy/deploy_backend.sh  # 仅后端
+./script/deploy/build_desktop.sh   # Electron 桌面端（含 electron-updater 在线更新）
 ```
 
-包含：前端构建 → 打包发布 → rsync 到远端 → 安装依赖 → 重启服务 → nginx reload
+- Nginx 配置：`script/deploy/nginx.chat.mybfs.cn.conf`
+- 环境变量与远端目录：见 [script/deploy/README.md](script/deploy/README.md)
 
-### 仅后端部署
+### Docker 部署
 
 ```bash
-./script/deploy/deploy_backend.sh
+cp .env.example .env   # 填入 API Key、JWT、远端 MySQL/Redis 地址
+docker compose up -d --build
 ```
 
-只更新后端代码和依赖，不构建前端。
-
-### 桌面端打包
-
-```bash
-./script/deploy/build_desktop.sh
-```
+- 容器：`app`（FastAPI）+ `nginx`（静态前端 + API 反代）
+- **MySQL / Redis 使用远端服务**，不在 compose 中拉取镜像
+- 默认访问：`http://localhost:8088`（`8088:80`）
+- 配置：`Dockerfile`、`docker-compose.yml`、`script/deploy/nginx.docker.conf`
+- 详细说明与排障：[.cursor/skills/langweave/开发指南.md](.cursor/skills/langweave/开发指南.md) · [docker-reference.md](.cursor/skills/langweave/docker-reference.md)
 
 ---
 
@@ -344,10 +351,10 @@ npm run build
 
 | Agent 文件 | 注册名称 | 说明 |
 |-----------|----------|------|
-| `agents/intent_agent.py` | `intent` | 意图分类 Agent，结构化输出，路由到 specialist |
-| `agents/research_agent_v2.py` | `emotional` | 情感陪伴 Agent（小暖），共情式对话 |
-| `agents/general_agent_v2.py` | `assistant` | 通用助手 Agent，含计算器、时钟工具 |
-| `agents/fallback_agent.py` | (fallback) | 兜底 Agent，模型不可用时的降级响应 |
+| `app/agents/intent_agent.py` | `intent` | 意图分类 Agent，结构化输出，路由到 specialist |
+| `app/agents/research_agent_v2.py` | `emotional` | 情感陪伴 Agent（小暖），共情式对话 |
+| `app/agents/general_agent_v2.py` | `assistant` | 通用助手 Agent，含计算器、时钟工具 |
+| `app/agents/fallback_agent.py` | (fallback) | 兜底 Agent，模型不可用时的降级响应 |
 
 ### 单设备登录
 
@@ -536,7 +543,7 @@ npm run build
 │   ├── 📄 __init__.py
 │   ├── 📂 cache/                           # Redis 缓存
 │   │   ├── 📄 __init__.py
-│   │   ├── 📄 heartbear.py                 # 用户心跳
+│   │   ├── 📄 heartbeat.py                 # 用户心跳
 │   │   ├── 📄 dau.py                       # 日活统计（HyperLogLog）
 │   │   ├── 📄 session.py                   # 单设备登录
 │   │   ├── 📄 token_blacklist.py           # 令牌黑名单
@@ -546,15 +553,12 @@ npm run build
 │       ├── 📄 database.py                  # 数据库连接
 │       └── 📄 models.py                    # ORM 模型定义
 │
-├── 📂 interfaces/http/                     # 🌐 HTTP 路由（保持向后兼容）
+├── 📂 interfaces/http/                     # 🌐 HTTP 路由
 │   ├── 📄 __init__.py
-│   ├── 📄 router.py                        # 路由聚合（含新版 + 旧版）
+│   ├── 📄 router.py                        # 路由聚合（unified + auth + admin + …）
 │   ├── 📄 deps.py                          # 依赖注入
 │   ├── 📄 auth_routes.py                   # 鉴权路由
-│   ├── 📄 chat_routes.py                   # 入口 Agent 聊天路由
-│   ├── 📄 emotional_chat_routes.py         # 情感聊天路由
-│   ├── 📄 intent_routes.py                 # 意图识别路由
-│   ├── 📄 heartbear_routes.py              # 心跳路由
+│   ├── 📄 heartbeat_routes.py              # 心跳路由
 │   ├── 📄 admin_routes.py                  # 管理后台路由
 │   └── 📄 session_routes.py                # 会话记忆路由
 │
@@ -586,9 +590,6 @@ npm run build
 │   ├── 📄 002_insert_hewa_agent.sql
 │   └── 📄 README.md
 
-📦 docs/                                    # 📖 文档
-│   └── 📄 LLM使用指南.md
-
 📦 scripts/                                 # 🔧 脚本工具
 │   └── 📄 init_agents.py                   # Agent 初始化脚本
 
@@ -603,9 +604,24 @@ npm run build
 │   └── 📂 desktop/                         # Electron 桌面端
 
 📦 script/deploy/                           # 🔧 部署脚本
-│   ├── 📄 deploy_all.sh                    # 全量部署
+│   ├── 📄 deploy_all.sh                    # 全量部署（Bash）
 │   ├── 📄 deploy_backend.sh                # 后端单独部署
-│   └── 📄 build_desktop.sh                 # 桌面端打包
+│   ├── 📄 build_desktop.sh                 # 桌面端打包
+│   ├── 📄 nginx.chat.mybfs.cn.conf         # 生产 nginx
+│   └── 📄 nginx.docker.conf                # Docker nginx
+
+📄 Dockerfile                               # Docker 多阶段构建
+📄 docker-compose.yml                       # Docker 编排（app + nginx）
+📄 .dockerignore
+
+📦 docs/
+│   └── 📄 README.md                         # 文档索引 → .cursor/skills/langweave/
+
+📦 .cursor/skills/langweave/                # 📖 项目文档（与 Cursor 技能同源）
+│   ├── 📄 SKILL.md                          # Agent 技能入口
+│   ├── 📄 开发指南.md
+│   ├── 📄 framework-reference.md            # 框架 API 参考
+│   └── 📄 docker-reference.md
 
 📄 main.py                                  # 🚀 ASGI 入口（uvicorn main:app）
 📄 tests/                                   # 🧪 测试
