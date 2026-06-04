@@ -9,9 +9,6 @@ import logging
 from fastapi import FastAPI
 
 from app.bootstrap import create_business_app
-from app.core.database import init_database
-from app.infrastructure.cache import close_redis
-from langweave.web.deps import get_registry
 
 logger = logging.getLogger(__name__)
 
