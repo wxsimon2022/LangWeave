@@ -299,8 +299,6 @@ npm run build
 
 ## 部署
 
-两套方式**并存、互不影响**：Bash 脚本用于生产服务器；Docker 用于本地/容器化环境。
-
 ### Bash 脚本部署（生产）
 
 ```bash
@@ -319,11 +317,11 @@ cp .env.example .env   # 填入 API Key、JWT、远端 MySQL/Redis 地址
 docker compose up -d --build
 ```
 
-- 容器：`app`（FastAPI）+ `nginx`（静态前端 + API 反代）
-- **MySQL / Redis 使用远端服务**，不在 compose 中拉取镜像
-- 默认访问：`http://localhost:8088`（`8088:80`）
+- 服务：`app` + `nginx`
+- 访问：`http://localhost:8088`
+- MySQL、Redis：远端，通过 `.env` 配置
 - 配置：`Dockerfile`、`docker-compose.yml`、`script/deploy/nginx.docker.conf`
-- 详细说明与排障：[.cursor/skills/langweave/开发指南.md](.cursor/skills/langweave/开发指南.md) · [docker-reference.md](.cursor/skills/langweave/docker-reference.md)
+- 文档：[开发指南](.cursor/skills/langweave/开发指南.md) · [docker-reference](.cursor/skills/langweave/docker-reference.md)
 
 ---
 
@@ -514,7 +512,7 @@ docker compose up -d --build
 │
 ├── 📄 config.py                            # ⚙️ 全局配置
 │
-├── 📂 domain/                              # 📦 领域层（保持向后兼容）
+├── 📂 domain/                              # 📦 领域层
 │   ├── 📂 agents/
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 registry.py                  # Agent 注册器（引用 app/agents）
@@ -528,7 +526,7 @@ docker compose up -d --build
 │       ├── 📄 catalog.py                   # 工具组合
 │       └── 📄 order.py                     # 订单查询工具
 │
-├── 📂 application/                         # 📦 应用服务层（保持向后兼容）
+├── 📂 application/                         # 📦 应用服务层
 │   ├── 📄 __init__.py
 │   ├── 📄 security.py                      # JWT、密码哈希、HMAC
 │   └── 📂 services/
@@ -539,7 +537,7 @@ docker compose up -d --build
 │       ├── 📄 intent.py                    # 意图识别服务
 │       └── 📄 session.py                   # 会话管理服务
 │
-├── 📂 infrastructure/                      # 📦 基础设施层（保持向后兼容）
+├── 📂 infrastructure/                      # 📦 基础设施层
 │   ├── 📄 __init__.py
 │   ├── 📂 cache/                           # Redis 缓存
 │   │   ├── 📄 __init__.py
