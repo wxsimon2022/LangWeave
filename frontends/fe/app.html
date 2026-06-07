@@ -24,6 +24,8 @@
     <meta name="apple-mobile-web-app-title" content="LangWeave" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="baidu-site-verification" content="请到 https://ziyuan.baidu.com/ 注册后替换此验证码" />
+    <!-- ↑↑ 务必替换上面的 verification code！在百度站长平台 → 站点管理 → 验证网站 获取 ↑↑ -->
     <link rel="canonical" href="https://chat.mybfs.cn/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="alternate" hreflang="zh-CN" href="https://chat.mybfs.cn/" />
@@ -121,6 +123,40 @@
   </head>
   <body>
     <div id="app">
+      <!-- ===== 以下为爬虫可读的预渲染内容（SPA 挂载后自动替换）===== -->
+      <div style="max-width:900px;margin:0 auto;padding:1rem;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#2c1810">
+        <header style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0">
+          <div style="font-size:1.1rem;font-weight:700"><span style="color:#d9735a">LangWeave</span></div>
+          <div style="display:flex;gap:0.5rem">
+            <a href="https://chat.mybfs.cn/" style="text-decoration:none;padding:0.4rem 0.8rem;border-radius:6px;font-size:0.82rem;color:#6a5a4e;background:#f7f2ed">首页</a>
+          </div>
+        </header>
+        <main>
+          <h1 style="font-size:1.4rem;font-weight:650;margin-bottom:0.5rem">LangWeave 情感陪伴 — AI 情感聊天助手</h1>
+          <p style="font-size:0.95rem;color:#6a5a4e;line-height:1.6;margin-bottom:1rem">
+            LangWeave（织语）是一款免费的 AI 情感陪伴聊天助手，提供温暖、共情的对话支持。
+            基于先进的语言模型和 LangChain 技术，AI 小暖可以记住您的历史对话内容，随时倾听您的感受。
+            支持多轮对话记忆、多对话主题管理、历史聊天记录自动存档。隐私安全，登录即可使用。
+          </p>
+          <div style="background:#f7f2ed;border-radius:12px;padding:1rem;margin-bottom:1rem">
+            <h2 style="font-size:1.1rem;font-weight:600;margin-bottom:0.5rem">核心功能</h2>
+            <ul style="list-style:none;padding:0;margin:0">
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">🧠 多轮记忆：AI 记住之前的对话，像老朋友一样自然连贯</li>
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">💬 共情对话：温暖、理解、不评判的情感回应</li>
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">📝 历史存档：对话自动保存，随时回顾心路历程</li>
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">🔄 多对话管理：按话题分类，方便管理不同方向的交流</li>
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">🔒 隐私安全：用户认证系统保护对话隐私</li>
+              <li style="padding:0.3rem 0;font-size:0.9rem;color:#6a5a4e">⚡ 实时响应：流式输出，回复实时显示</li>
+            </ul>
+          </div>
+          <p style="text-align:center;font-size:0.9rem">
+            <a href="https://chat.mybfs.cn/" style="display:inline-block;padding:0.6rem 1.5rem;border-radius:10px;text-decoration:none;font-weight:600;background:#d9735a;color:#fff">开始免费体验 →</a>
+          </p>
+        </main>
+        <footer style="text-align:center;padding:1rem 0;font-size:0.78rem;color:#a89484;border-top:1px solid #e0d6ce;margin-top:1rem">
+          <p>&copy; 2026 LangWeave | <a href="https://github.com/wxsimon2022/LangWeave" style="color:#d9735a;text-decoration:underline">GitHub</a></p>
+        </footer>
+      </div>
       <noscript>
         <div style="padding:2rem;text-align:center;font-family:sans-serif">
           <h1>LangWeave 情感陪伴</h1>
@@ -128,7 +164,23 @@
           <p>如需帮助，请查看 <a href="https://chat.mybfs.cn/" style="color:#d9735a">首页说明</a>。</p>
         </div>
       </noscript>
+      <!-- ===== 爬虫预渲染内容结束 ===== -->
     </div>
     <script type="module" src="/src/main.js"></script>
+  <!-- ===== 百度自动推送（帮助百度发现新页面）===== -->
+  <script>
+  (function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+      bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+    } else {
+      bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(bp, s);
+  })();
+  </script>
+  
   </body>
 </html>

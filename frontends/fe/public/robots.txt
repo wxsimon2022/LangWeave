@@ -1,24 +1,43 @@
 # LangWeave robots.txt
 # https://chat.mybfs.cn/robots.txt
 
+# ===== 通用规则 =====
 User-agent: *
 Allow: /
 Allow: /app.html
+Allow: /og-image.png
 Allow: /manifest.json
+Allow: /favicon.svg
+Disallow: /api/
+Disallow: /admin/
+Disallow: /*?*  # 阻止重复参数页面
+
+# ===== 百度爬虫 =====
+User-agent: Baiduspider
+Allow: /
+Allow: /app.html
+Allow: /og-image.png
+Crawl-Delay: 5
 Disallow: /api/
 Disallow: /admin/
 
-# SEO crawlers: allow everything that isn't private
+# ===== 谷歌爬虫 =====
 User-agent: Googlebot
 Allow: /
 Allow: /app.html
+Allow: /og-image.png
 Disallow: /api/
 
+# ===== 必应爬虫 =====
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
 
-User-agent: Baiduspider
+# ===== 其他搜索引擎 =====
+User-agent: Yandex
+Disallow: /
+
+User-agent: Sogou
 Allow: /
 Allow: /app.html
 Disallow: /api/
