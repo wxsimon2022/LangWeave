@@ -1,34 +1,21 @@
 # =============================================================================
-# Stage 1: frontend-builder — Vite SPA (entry: app.html)
+# LangWeave — single-stage backend build (multi-stage removed because
+# node:20-alpine and nginx:alpine cannot be pulled through the
+# NAS's broken docker.fnnas.com mirror).
+#
+# The frontend SPA is pre-built locally (npm run build) and copied
+# into the container as FastAPI static files.
 # =============================================================================
-FROM node:20-alpine AS frontend-builder
+FROM python:3.11-slim
 
-# Use China npm mirror for faster downloads
-RUN npm config set registry https://registry.npmmirror.com
-
-WORKDIR /app/frontends/fe
-
-COPY frontends/fe/package.json frontends/fe/package-lock.json* ./
-RUN npm ci
-
-COPY frontends/fe/ .
-RUN npm run build
-
-# =============================================================================
-# Stage 2: backend — FastAPI (uvicorn main:app)
-# =============================================================================
-FROM python:3.11-slim AS backend
-
-# Use China apt mirror for faster apt-get
+# Use China mirrors for apt and pip
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
     || sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
-
-# Use China pip mirror
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
 
-# Install system dependencies (mysqlclient, etc.)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     default-libmysqlclient-dev \
@@ -42,29 +29,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY langweave/ langweave/
 COPY app/ app/
 COPY main.py pyproject.toml ./
+RUN mkdir -p /app/static
+
 
 EXPOSE 8000
 
-# Runtime DB/Redis URLs from .env or docker-compose
 ENV LANGWEAVE_DATABASE_URL=mysql+pymysql://root:password@127.0.0.1:3306/langweave
 ENV LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# =============================================================================
-# Stage 3: production — nginx + built frontend static files
-# =============================================================================
-FROM nginx:alpine AS production
-
-# Use China apt mirror for faster apk add (if needed)
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 2>/dev/null || true
-
-# Copy built frontend from stage 1
-COPY --from=frontend-builder /app/frontends/fe/dist/ /usr/share/nginx/html/
-
-# Copy custom nginx config
-COPY script/deploy/nginx.docker.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
