@@ -10,6 +10,11 @@ TREE_DOCS_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="LangWeave API 文档目录 — 查看和调试所有 API 接口。基于 LangChain/LangGraph 的 Agent 服务。" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:title" content="LangWeave API 文档" />
+  <meta property="og:description" content="LangWeave API 文档目录 — 查看和调试所有 API 接口。" />
+  <meta property="og:type" content="website" />
   <title>LangWeave API 目录</title>
   <style>
     :root {

@@ -26,6 +26,8 @@
     <meta name="format-detection" content="telephone=no" />
     <link rel="canonical" href="https://chat.mybfs.cn/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="alternate" hreflang="zh-CN" href="https://chat.mybfs.cn/" />
+    <link rel="alternate" hreflang="x-default" href="https://chat.mybfs.cn/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -43,8 +45,10 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:site_name" content="LangWeave" />
+    <meta property="og:image:alt" content="LangWeave AI 情感陪伴聊天助手界面预览" />
 
     <!-- ===== Twitter ===== -->
+    <meta name="twitter:image:alt" content="LangWeave AI 情感陪伴聊天助手界面预览" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://chat.mybfs.cn/" />
     <meta name="twitter:title" content="情感陪伴 — AI 情感聊天助手 | LangWeave" />
@@ -64,6 +68,11 @@
       "description": "LangWeave 情感陪伴助手提供温暖、共情的 AI 对话支持。",
       "applicationCategory": "HealthApplication",
       "operatingSystem": "All (Web)",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://chat.mybfs.cn/app.html",
+        "query-input": "required name=search_term"
+      },
       "browserRequirements": "Requires JavaScript. Modern browser recommended.",
       "author": {
         "@type": "Organization",
@@ -111,7 +120,15 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <noscript>
+        <div style="padding:2rem;text-align:center;font-family:sans-serif">
+          <h1>LangWeave 情感陪伴</h1>
+          <p>您的浏览器未启用 JavaScript，请启用后使用本应用。</p>
+          <p>如需帮助，请查看 <a href="https://chat.mybfs.cn/" style="color:#d9735a">首页说明</a>。</p>
+        </div>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
