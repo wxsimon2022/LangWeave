@@ -87,8 +87,8 @@ cat <<EOF
 ╔═══════════════════════════════════════════════════════════╗
 ║                    Deployment complete                    ║
 ╠═══════════════════════════════════════════════════════════╣
-║   Chat UI:  http://${NAS_HOST}:8088                      ║
-║   API:      http://${NAS_HOST}:8088/api/v1/              ║
-║   Swagger:  http://${NAS_HOST}:8088/docs                 ║
+║   Chat UI:  http://${NAS_HOST}:8088                       ║
+║   API:      http://${NAS_HOST}:8088/api/v1/               ║
+║   Swagger:  http://${NAS_HOST}:8088/docs                  ║
 ╚═══════════════════════════════════════════════════════════╝
 EOF
