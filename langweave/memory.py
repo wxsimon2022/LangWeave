@@ -22,7 +22,7 @@ from langweave.config import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-_CHECKPOINT_COLLATION = "utf8mb4_general_ci"
+_CHECKPOINT_COLLATION = "utf8mb4_0900_ai_ci"
 _CHECKPOINT_DATA_TABLES = ("checkpoints", "checkpoint_blobs", "checkpoint_writes")
 
 def _is_mysql_url(url: str) -> bool:
@@ -40,6 +40,9 @@ def _normalize_mysql_url(raw_url: str) -> str:
     return raw_url.replace("mysql+pymysql:", "mysql:", 1)
 
 @lru_cache
+
+
+
 def get_checkpointer() -> BaseCheckpointSaver:
     """Return a shared MySQL-backed checkpointer (AIOMySQLSaver).
 
@@ -156,6 +159,34 @@ async def _create_async_mysql_checkpointer(url: str) -> BaseCheckpointSaver:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=Warning)
         await saver.setup()
+
+    # Ensure checkpoint_ns column exists (legacy tables)
+    async with conn.cursor(aiomysql.DictCursor) as cur:
+        await _apply_session_collation(cur)
+        for tbl in ("checkpoints", "checkpoint_blobs", "checkpoint_writes"):
+            try:
+                await cur.execute(
+                    f"ALTER TABLE {tbl} "
+                    f"ADD COLUMN checkpoint_ns VARCHAR(2000) "
+                    f"NOT NULL DEFAULT ''"
+                )
+                logger.info("Added missing checkpoint_ns column to %s", tbl)
+            except Exception:
+                pass
+
+        for tbl, pk in (
+            ("checkpoints", "thread_id, checkpoint_id"),
+            ("checkpoint_blobs", "thread_id, channel, version"),
+            ("checkpoint_writes", "thread_id, checkpoint_id, task_id, idx"),
+        ):
+            try:
+                await cur.execute(
+                    f"ALTER TABLE {tbl} "
+                    f"DROP PRIMARY KEY, "
+                    f"ADD PRIMARY KEY ({pk})"
+                )
+            except Exception:
+                pass
 
     async with conn.cursor(aiomysql.DictCursor) as cur:
         await _apply_session_collation(cur)
