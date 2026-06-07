@@ -74,7 +74,7 @@ flowchart TB
 ## 快速开始（DeepSeek）
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt    # langchain, langgraph, MySQL checkpointer, etc.
 cp .env.example .env
 # 编辑 .env，填入 DEEPSEEK_API_KEY（启动时会自动加载，无需手动 export）
 ```
@@ -84,6 +84,7 @@ cp .env.example .env
 ```env
 DEEPSEEK_API_KEY=sk-your-key
 LANGWEAVE_MODEL=deepseek:deepseek-chat
+LANGWEAVE_DATABASE_URL=mysql+pymysql://user:password@host:3306/dbname
 ```
 
 ```python
@@ -126,7 +127,7 @@ export LANGWEAVE_MODEL=openai:gpt-4o-mini
 ### 后端
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt    # langchain, langgraph, MySQL checkpointer, etc.
 uvicorn main:app --reload --port 8000
 ```
 
@@ -331,7 +332,7 @@ docker compose up -d --build
 |------|------|------|
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | 推荐 |
 | `LANGWEAVE_MODEL` | 默认模型（默认 `deepseek:deepseek-chat`） | |
-| `LANGWEAVE_DATABASE_URL` | 数据库连接（默认 SQLite） | |
+| `LANGWEAVE_DATABASE_URL` | MySQL 连接（必填，应用强依赖 MySQL，不支持 SQLite） | **是** |
 | `LANGWEAVE_JWT_SECRET` | JWT 签名密钥 | 生产必填 |
 | `LANGWEAVE_JWT_EXPIRE_MINUTES` | JWT 过期分钟数（默认 120） | |
 | `LANGWEAVE_REDIS_URL` | Redis 连接（心跳、单设备登录、DAU） | 推荐 |
@@ -562,16 +563,17 @@ print(supervisor.chat("Explain async/await and give a tiny example."))
 
 ## 多轮对话记忆
 
-`assistant`、`emotional` 已启用 LangGraph checkpointer（内存会话，重启服务后清空）。
+`assistant`、`emotional` 已启用 LangGraph checkpointer（**MySQL 持久化**，跨重启保留）。
+
+多轮记忆依赖 `LANGWEAVE_DATABASE_URL` 指向 MySQL 数据库。首次使用时，`langweave/memory.py` 会自动创建 `checkpoints`、`checkpoint_blobs`、`checkpoint_writes` 三张表；如果表结构来自 `langgraph-checkpoint-mysql` 旧版本，迁移逻辑会自动补充缺失的 `checkpoint_ns` 列并修复排序规则。
 
 1. 首次对话可不传 `thread_id`，响应会返回 `thread_id`
 2. 后续请求带上同一 `thread_id`，Agent 会记住此前消息
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/agents/emotional/chat \
+curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
   -H "Content-Type: application/json" \
   -d '{"message": "最近很焦虑"}'
-# 记下返回的 data.thread_id 用于后续对话
 ```
 
 关闭记忆：`LANGWEAVE_MEMORY_ENABLED=false`
