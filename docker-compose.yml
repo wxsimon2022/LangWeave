@@ -30,10 +30,12 @@ services:
   # FastAPI Backend
   # ---------------------------------------------------------------------------
   app:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
       target: backend
+    image: langweave/backend:latest
     container_name: langweave-app
     restart: unless-stopped
     environment:
@@ -62,10 +64,12 @@ services:
   # Nginx (reverse proxy + frontend static files)
   # ---------------------------------------------------------------------------
   nginx:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
       target: production
+    image: langweave/nginx:latest
     container_name: langweave-nginx
     restart: unless-stopped
     ports:
