@@ -1,6 +1,8 @@
-"""Agent application service — unified stream entry with intent routing.
+"""Agent application service — stream entry point for /api/v1/unified/stream.
 
-Delegates to ``ChatService`` for intent classification and specialist agent dispatch.
+Thin delegate that wraps ``ChatService``.  Exists so that the HTTP layer
+(``app/interfaces/http/agents_unified.py``) depends on a service object
+rather than importing a module-level function.
 """
 from __future__ import annotations
 

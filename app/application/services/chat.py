@@ -23,7 +23,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.application.services.intent import IntentService
-from app.infrastructure.persistence.models import ChatMessage, Conversation, User
+from app.infrastructure.persistence.message import ChatMessage
+from app.infrastructure.persistence.conversation import Conversation
+from app.infrastructure.persistence.user import User
 from app.schemas.emotional_chat import (
     ConversationListResponse,
     ConversationSummary,
@@ -47,6 +49,7 @@ def _message_to_schema(message: ChatMessage) -> EmotionalMessageItem:
         id=message.id,
         role=message.role,
         content=message.content,
+        agent_name=message.agent_name or "",
         created_at=message.created_at,
     )
 
@@ -214,6 +217,7 @@ class ChatService:
             conversation_id=conversation.id,
             role="assistant",
             content=final_reply,
+            agent_name=conversation.agent_name,
         )
         self._db.add_all([user_message, assistant_message])
         self._auto_title(conversation, content)

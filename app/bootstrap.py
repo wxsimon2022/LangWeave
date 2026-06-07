@@ -1,4 +1,13 @@
-"""Application composition helpers."""
+"""Application composition root.
+
+Connects the framework (langweave) with the business layer (app).
+Called by ``app.core.app.create_app`` which is the ASGI entrypoint.
+
+Startup sequence:
+  1. create_app() → langweave.web.create_app() (FastAPI factory)
+  2. App lifespan calls on_startup → _startup()
+  3. _startup() → init_database() + _seed_admin() + register_agents()
+"""
 
 from __future__ import annotations
 
@@ -11,7 +20,7 @@ from app.domain.agents import register_agents
 from app.interfaces.http import include_business_routers
 from app.infrastructure.persistence.database import get_session_factory, init_database
 from app.application.security import hash_password
-from app.infrastructure.persistence.models import User
+from app.infrastructure.persistence.user import User
 from app.logging import setup_logging
 from app.constants import DEFAULT_CORS_ORIGINS
 from app.middleware.rate_limit import RateLimitMiddleware

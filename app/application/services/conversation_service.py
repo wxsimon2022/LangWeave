@@ -1,4 +1,8 @@
-"""Conversation list, history, rename, delete — /api/v1/conversations/*."""
+"""Conversation management — list, history, rename, delete, reset.
+
+Thin delegate that wraps ``ChatService``.  Separated from the route
+handler so that business logic stays unit-testable without FastAPI.
+"""
 from __future__ import annotations
 
 from typing import Any

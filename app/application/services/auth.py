@@ -12,7 +12,9 @@ from app.application.security import (
     hash_password,
     verify_password,
 )
-from app.infrastructure.persistence.models import ChatMessage, Conversation, User
+from app.infrastructure.persistence.message import ChatMessage
+from app.infrastructure.persistence.conversation import Conversation
+from app.infrastructure.persistence.user import User
 from app.schemas.admin import (
     AdminConversationItem,
     AdminConversationListResponse,

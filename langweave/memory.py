@@ -80,10 +80,23 @@ class _LazyAsyncCheckpointer(BaseCheckpointSaver):
 
     async def _ensure(self) -> BaseCheckpointSaver:
         if self._real is not None:
-            return self._real
-        saver = await _create_async_mysql_checkpointer(self._url)
-        self._real = saver
-        return saver
+            # Connection health check — MySQL may have timed out the
+            # connection between requests (wait_timeout, network glitch).
+            # Ping the underlying connection and recreate if dead.
+            conn = getattr(self._real, "conn", None)
+            if conn is not None:
+                try:
+                    async with conn.cursor() as cur:
+                        await cur.execute("SELECT 1")
+                except Exception:
+                    logger.info("Checkpointer connection lost, reconnecting...")
+                    self._real = None
+            else:
+                return self._real
+        if self._real is None:
+            saver = await _create_async_mysql_checkpointer(self._url)
+            self._real = saver
+        return self._real
 
     async def aget_tuple(self, config: dict[str, Any]) -> Any:
         return await (await self._ensure()).aget_tuple(config)

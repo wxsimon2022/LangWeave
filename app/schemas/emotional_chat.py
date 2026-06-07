@@ -13,6 +13,10 @@ class EmotionalMessageItem(BaseModel):
     id: int
     role: str = Field(description="user | assistant | system")
     content: str
+    agent_name: str = Field(
+        default="",
+        description="Which agent generated this message (emotional / assistant)",
+    )
     created_at: datetime
 
 

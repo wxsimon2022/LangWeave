@@ -18,7 +18,7 @@ from app.schemas.admin import (
     AdminUserDeleteResponse,
     AdminUserListResponse,
 )
-from app.infrastructure.persistence.models import User
+from app.infrastructure.persistence.user import User
 from app.infrastructure.cache.heartbeat import get_online_users_async, get_online_count_async
 from app.infrastructure.cache.dau import get_dau_summary_async
 from langweave.web.response import ApiResponse

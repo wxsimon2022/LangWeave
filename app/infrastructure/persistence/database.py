@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.infrastructure.persistence.models import Base
+from app.infrastructure.persistence.base import Base
 from langweave.config import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,24 @@ def init_database() -> None:
     url = _database_url()
     engine = get_engine(url)
     Base.metadata.create_all(bind=engine)
+
+    # Migrate existing tables — add columns that were introduced after
+    # the initial schema was deployed.  Each ALTER is idempotent: if the
+    # column already exists, the exception is silently swallowed.
+    with engine.connect() as conn:
+        try:
+            conn.execute(
+                text(
+                    "ALTER TABLE c_messages "
+                    "ADD COLUMN agent_name VARCHAR(32) "
+                    "DEFAULT NULL AFTER content"
+                )
+            )
+            conn.commit()
+            logger.info("Added c_messages.agent_name column")
+        except Exception:
+            conn.rollback()
+
     logger.info("Database connected: %s", url.partition("://")[0] + "://***")
 
 
@@ -89,6 +107,7 @@ def init_database() -> None:
 #  conversation_id INT          INDEX
 #  role            VARCHAR(16)
 #  content         TEXT
+#  agent_name      VARCHAR(32)  NULL  (which agent produced this reply)
 #  created_at      DATETIME
 #
 # Notes:

@@ -20,7 +20,7 @@ from app.infrastructure.cache.token_blacklist import is_token_blacklisted_sync
 from app.application.services.intent import IntentService
 from app.application.services.session import SessionService
 from app.infrastructure.persistence.database import get_db_session
-from app.infrastructure.persistence.models import User
+from app.infrastructure.persistence.user import User
 from langweave.registry import AgentRegistry
 from langweave.web.deps import get_registry
 

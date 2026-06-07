@@ -1,6 +1,9 @@
 """Register business agents into the LangWeave registry.
 
-Agent implementations live in ``app.domain.agents``.
+Called once during FastAPI lifespan startup (``app.bootstrap._startup``).
+If the configured model provider (e.g. DeepSeek) is unavailable, every
+agent is replaced with an ``UnavailableAgent`` that returns a clear
+error message — the API stays alive even when the AI backend is down.
 """
 from __future__ import annotations
 
@@ -24,6 +27,10 @@ from app.constants import (
 
 
 def _missing_model_error(settings: AgentSettings) -> str | None:
+    """Check whether the configured model provider is importable.
+
+    Returns an error string if the dependency is missing, or None if OK.
+    """
     model = settings.model
     if model.startswith("deepseek"):
         try:

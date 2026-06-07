@@ -13,7 +13,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.infrastructure.persistence.models import ChatMessage, Conversation, User
+from app.infrastructure.persistence.message import ChatMessage
+from app.infrastructure.persistence.conversation import Conversation
+from app.infrastructure.persistence.user import User
 from app.schemas.emotional_chat import (
     ConversationListResponse,
     ConversationSummary,
