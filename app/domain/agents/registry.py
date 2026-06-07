@@ -1,6 +1,6 @@
 """Register business agents into the LangWeave registry.
 
-Agent implementations live in ``app/agents/``.
+Agent implementations live in ``app.domain.agents``.
 """
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ import importlib
 from langweave.config import AgentSettings
 from langweave.registry import AgentRegistry
 
-from app.agents.research_agent_v2 import build_research_agent_v2
-from app.agents.general_agent_v2 import build_general_agent_v2
-from app.agents.intent_agent import build_intent_agent
-from app.agents.fallback_agent import build_unavailable_agent
+from app.domain.agents.emotional import build_research_agent_v2
+from app.domain.agents.assistant import build_general_agent_v2
+from app.domain.agents.intent import build_intent_agent
+from app.domain.agents.fallback import build_unavailable_agent
 from app.constants import (
     INTENT_AGENT,
     ASSISTANT_AGENT,

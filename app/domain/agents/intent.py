@@ -1,12 +1,15 @@
-"""Intent classification agent (structured output, no tools)."""
+"""Intent classification agent — structured output, no tools.
 
+Classifies user intent into predefined categories and routes to
+the appropriate specialist agent.
+"""
 from __future__ import annotations
 
 from langweave import Agent, AgentBuilder
 from langweave.config import AgentSettings
 
 from app.schemas.intent import UserIntent
-from app.constants import INTENT_AGENT, ASSISTANT_AGENT, EMOTIONAL_AGENT
+from app.constants import INTENT_AGENT
 
 INTENT_SYSTEM_PROMPT = """你是意图识别模块。只分析用户输入，输出结构化分类结果，不要直接回答用户问题。
 

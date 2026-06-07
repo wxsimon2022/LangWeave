@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI
 
-from app.api.v1.agents_unified import router as agents_unified_router
-from app.api.v1.conversations import router as conversations_router
+from app.interfaces.http.agents_unified import router as agents_unified_router
+from app.interfaces.http.conversations import router as conversations_router
 from app.interfaces.http.admin_routes import router as admin_router
 from app.interfaces.http.auth_routes import router as auth_router
 from app.interfaces.http.heartbeat_routes import router as heartbeat_router

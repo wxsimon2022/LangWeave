@@ -349,10 +349,10 @@ docker compose up -d --build
 
 | Agent 文件 | 注册名称 | 说明 |
 |-----------|----------|------|
-| `app/agents/intent_agent.py` | `intent` | 意图分类 Agent，结构化输出，路由到 specialist |
-| `app/agents/research_agent_v2.py` | `emotional` | 情感陪伴 Agent（小暖），共情式对话 |
-| `app/agents/general_agent_v2.py` | `assistant` | 通用助手 Agent，含计算器、时钟工具 |
-| `app/agents/fallback_agent.py` | (fallback) | 兜底 Agent，模型不可用时的降级响应 |
+| `app/domain/agents/intent.py` | `intent` | 意图分类 Agent，结构化输出，路由到 specialist |
+| `app/domain/agents/emotional.py` | `emotional` | 情感陪伴 Agent（小暖），共情式对话 |
+| `app/domain/agents/assistant.py` | `assistant` | 通用助手 Agent，含计算器、时钟工具 |
+| `app/domain/agents/fallback.py` | (fallback) | 兜底 Agent，模型不可用时的降级响应 |
 
 ### 单设备登录
 
@@ -393,41 +393,19 @@ docker compose up -d --build
     📄 tree_docs.py                         # 目录树文档 UI
 
 📦 app/                                     # 业务层
-│
-├── 📂 agents/                              # 🤖 Agent 实现
-│   ├── 📄 __init__.py
-│   ├── 📄 research_agent_v2.py             # 研究分析 / 情感陪伴 Agent V2（小暖）
-│   ├── 📄 general_agent_v2.py              # 通用助手 Agent V2（计算器、时钟）
-│   ├── 📄 intent_agent.py                  # 意图识别 Agent（结构化输出）
-│   ├── 📄 fallback_agent.py                # 兜底 Agent（模型不可用降级）
-│   └── 📄 memory.py                        # 对话记忆辅助函数（checkpointer 注入）
-│
-├── 📂 api/                                 # 🌐 API 接口
-│   └── 📂 v1/
-│       ├── 📄 __init__.py
-│       ├── 📄 agents_unified.py            # POST /api/v1/unified/stream
-│       └── 📄 conversations.py             # GET/PATCH/DELETE /api/v1/conversations/...
-│
-├── 📂 services/                            # 📦 业务服务（新版）
-│   ├── 📄 __init__.py
-│   ├── 📄 agent_application_service.py     # Agent 应用管理（包装 ChatService）
-│   ├── 📄 conversation_service.py          # 对话管理（包装 ChatService）
-│   ├── 📄 conversation_persistence.py      # 对话持久化（DB 操作）
-│   └── 📄 tool_service.py                  # 工具管理
-│
+
 ├── 📂 core/                                # 🔧 核心基础设施
 │   ├── 📂 agent/                           # Agent 核心
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 base_agent.py                # Agent 基类
-│   │   ├── 📄 agent_mapping.py             # Agent 映射表（intent → agent）
+│   │   ├── 📄 agent_mapping.py             # Agent 映射表
 │   │   ├── 📄 agent_registry.py            # Agent 注册器
 │   │   ├── 📄 single_agent.py              # 单 Agent 调用
 │   │   └── 📄 multi_agent.py               # 多 Agent 编排
 │   │
 │   ├── 📂 llm/                             # 🧠 LLM 管理
 │   │   ├── 📄 __init__.py
-│   │   ├── 📄 llm_factory.py               # LLM 工厂（支持多提供商）
-│   │   └── 📄 README.md                    # LLM 使用文档
+│   │   └── 📄 llm_factory.py               # LLM 工厂
 │   │
 │   ├── 📂 tools/                           # 🛠️ 工具系统
 │   │   ├── 📄 __init__.py
@@ -467,60 +445,20 @@ docker compose up -d --build
 │   │   └── 📄 retriever.py                 # 检索器
 │   │
 │   ├── 📄 __init__.py
-│   ├── 📄 database.py                      # 数据库连接（re-export）
-│   ├── 📄 cache.py                         # 缓存管理（re-export）
-│   ├── 📄 security.py                      # 安全管理（re-export）
-│   └── 📄 app.py                           # 应用初始化（create_app）
-│
-├── 📂 models/                              # 📋 ORM 数据模型
-│   ├── 📄 __init__.py
-│   ├── 📄 user.py                          # 用户模型（c_users）
-│   ├── 📄 conversation.py                  # 对话模型（c_conversations）
-│   └── 📄 message.py                       # 消息模型（c_messages）
-│
-├── 📂 middleware/                          # 🚦 HTTP 中间件
-│   ├── 📄 __init__.py
-│   ├── 📄 error_handler.py                 # 全局错误处理
-│   ├── 📄 request_logging.py               # 请求日志
-│   └── 📄 rate_limit.py                    # 限流控制
-│
-├── 📂 helpers/                             # 🔨 工具函数
-│   ├── 📄 __init__.py
-│   ├── 📄 logger.py                        # 日志工具
-│   ├── 📄 exceptions.py                    # 异常定义
-│   ├── 📄 validators.py                    # 验证器
-│   ├── 📄 formatters.py                    # 格式化工具
-│   └── 📄 prompt.py                        # 提示词工具
-│
-├── 📂 prompts/                             # 💭 提示词管理
-│   ├── 📄 __init__.py
-│   ├── 📄 prompt_manager.py                # 提示词管理器
-│   ├── 📄 constants.py                     # 提示词常量
-│   ├── 📂 agents/                          # Agent 专用提示词
-│   │   ├── 📄 __init__.py
-│   │   ├── 📄 research_agent.py            # 研究助手提示词
-│   │   └── 📄 task_agent.py                # 任务助手提示词
-│   └── 📂 templates/                       # Jinja2 模板
-│       ├── 📄 __init__.py
-│       ├── 📄 base_agent.jinja2            # Agent 基础模板
-│       ├── 📄 tool_usage.jinja2            # 工具使用模板
-│       └── 📄 error_handling.jinja2        # 错误处理模板
-│
-├── 📂 tasks/                               # ⚡ 异步任务
-│   ├── 📄 __init__.py
-│   └── 📄 celery_app.py                    # Celery 配置
-│
-├── 📄 config.py                            # ⚙️ 全局配置
+│   ├── 📄 database.py                      # 数据库连接
+│   ├── 📄 cache.py                         # 缓存管理
+│   ├── 📄 security.py                      # 安全管理
+│   └── 📄 app.py                           # 应用初始化
 │
 ├── 📂 domain/                              # 📦 领域层
 │   ├── 📂 agents/
 │   │   ├── 📄 __init__.py
-│   │   ├── 📄 registry.py                  # Agent 注册器（引用 app/agents）
-│   │   ├── 📄 intent.py
-│   │   ├── 📄 emotional.py
-│   │   ├── 📄 assistant.py
-│   │   ├── 📄 fallback.py
-│   │   └── 📄 memory.py
+│   │   ├── 📄 registry.py                  # Agent 注册入口
+│   │   ├── 📄 intent.py                    # 意图分类 Agent（结构化输出）
+│   │   ├── 📄 emotional.py                 # 情感陪伴 Agent（小暖）
+│   │   ├── 📄 assistant.py                 # 通用助手 Agent（计算器、时钟）
+│   │   ├── 📄 fallback.py                  # 兜底 Agent
+│   │   └── 📄 memory.py                    # 对话记忆辅助函数
 │   └── 📂 tools/
 │       ├── 📄 __init__.py
 │       ├── 📄 catalog.py                   # 工具组合
@@ -535,14 +473,16 @@ docker compose up -d --build
 │       ├── 📄 chat.py                      # 聊天服务（入口 Agent 路由）
 │       ├── 📄 emotional_chat.py            # 情感聊天服务
 │       ├── 📄 intent.py                    # 意图识别服务
-│       └── 📄 session.py                   # 会话管理服务
+│       ├── 📄 session.py                   # 会话管理服务
+│       ├── 📄 agent_application_service.py # Agent 应用管理
+│       └── 📄 conversation_service.py      # 对话管理
 │
 ├── 📂 infrastructure/                      # 📦 基础设施层
 │   ├── 📄 __init__.py
 │   ├── 📂 cache/                           # Redis 缓存
 │   │   ├── 📄 __init__.py
 │   │   ├── 📄 heartbeat.py                 # 用户心跳
-│   │   ├── 📄 dau.py                       # 日活统计（HyperLogLog）
+│   │   ├── 📄 dau.py                       # 日活统计
 │   │   ├── 📄 session.py                   # 单设备登录
 │   │   ├── 📄 token_blacklist.py           # 令牌黑名单
 │   │   └── 📄 anomaly.py                   # 异常检测
@@ -553,12 +493,32 @@ docker compose up -d --build
 │
 ├── 📂 interfaces/http/                     # 🌐 HTTP 路由
 │   ├── 📄 __init__.py
-│   ├── 📄 router.py                        # 路由聚合（unified + auth + admin + …）
+│   ├── 📄 router.py                        # 路由聚合
 │   ├── 📄 deps.py                          # 依赖注入
 │   ├── 📄 auth_routes.py                   # 鉴权路由
 │   ├── 📄 heartbeat_routes.py              # 心跳路由
 │   ├── 📄 admin_routes.py                  # 管理后台路由
-│   └── 📄 session_routes.py                # 会话记忆路由
+│   ├── 📄 session_routes.py                # 会话记忆路由
+│   ├── 📄 agents_unified.py                # POST /api/v1/unified/stream
+│   └── 📄 conversations.py                 # GET/PATCH/DELETE /api/v1/conversations/...
+│
+├── 📂 middleware/                          # 🚦 限流中间件
+│   ├── 📄 __init__.py
+│   └── 📄 rate_limit.py                    # IP 限流（Redis/内存双模式）
+│
+├── 📂 prompts/                             # 💭 提示词管理
+│   ├── 📄 __init__.py
+│   ├── 📄 prompt_manager.py                # 提示词管理器
+│   ├── 📄 constants.py                     # 提示词常量
+│   ├── 📂 agents/                          # Agent 专用提示词
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 research_agent.py            # 情感助手提示词
+│   │   └── 📄 task_agent.py                # 任务助手提示词
+│   └── 📂 templates/                       # Jinja2 模板
+│       ├── 📄 __init__.py
+│       ├── 📄 base_agent.jinja2            # Agent 基础模板
+│       ├── 📄 tool_usage.jinja2            # 工具使用模板
+│       └── 📄 error_handling.jinja2        # 错误处理模板
 │
 ├── 📂 schemas/                             # 📄 Pydantic 数据模式
 │   ├── 📄 __init__.py
@@ -575,57 +535,6 @@ docker compose up -d --build
 ├── 📄 types.py                             # 类型别名
 ├── 📄 utils.py                             # 工具函数
 └── 📄 bootstrap.py                         # 业务启动（DB 初始化、Agent 注册）
-
-📦 config/                                  # 📝 配置文件
-│   ├── 📄 mcp_servers.yaml                 # MCP 服务配置
-│   ├── 📄 prompts.yaml                     # 提示词配置
-│   └── 📄 README.md                        # 配置说明
-
-📦 migrations/                              # 💾 数据库迁移
-│   ├── 📄 000_insert_all_agents.sql
-│   ├── 📄 001_create_agent_applications_simple.sql
-│   ├── 📄 001_insert_research_agent_v2.sql
-│   ├── 📄 002_insert_hewa_agent.sql
-│   └── 📄 README.md
-
-📦 scripts/                                 # 🔧 脚本工具
-│   └── 📄 init_agents.py                   # Agent 初始化脚本
-
-📦 storage/                                 # 💿 存储目录
-│   └── 📂 logs/
-
-📦 examples/                                # 📚 示例代码
-
-📦 frontends/                               # 🎨 前端
-│   ├── 📂 fe/                              # 主聊天 SPA（Vue 3 + Vite）
-│   ├── 📂 admin/                           # 管理后台 SPA（Vue 3 + Vite）
-│   └── 📂 desktop/                         # Electron 桌面端
-
-📦 script/deploy/                           # 🔧 部署脚本
-│   ├── 📄 deploy_all.sh                    # 全量部署（Bash）
-│   ├── 📄 deploy_backend.sh                # 后端单独部署
-│   ├── 📄 build_desktop.sh                 # 桌面端打包
-│   ├── 📄 nginx.chat.mybfs.cn.conf         # 生产 nginx
-│   └── 📄 nginx.docker.conf                # Docker nginx
-
-📄 Dockerfile                               # Docker 多阶段构建
-📄 docker-compose.yml                       # Docker 编排（app + nginx）
-📄 .dockerignore
-
-📦 docs/
-│   └── 📄 README.md                         # 文档索引 → .cursor/skills/langweave/
-
-📦 .cursor/skills/langweave/                # 📖 项目文档（与 Cursor 技能同源）
-│   ├── 📄 SKILL.md                          # Agent 技能入口
-│   ├── 📄 开发指南.md
-│   ├── 📄 framework-reference.md            # 框架 API 参考
-│   └── 📄 docker-reference.md
-
-📄 main.py                                  # 🚀 ASGI 入口（uvicorn main:app）
-📄 tests/                                   # 🧪 测试
-📄 requirements.txt                         # 📦 Python 依赖
-📄 pyproject.toml                           # 项目元数据
-📄 .env.example                             # 🔐 环境变量模板
 ```
 
 ---

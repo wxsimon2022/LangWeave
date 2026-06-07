@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.services.agent_application_service import AgentApplicationService
+from app.application.services.agent_application_service import AgentApplicationService
 from app.interfaces.http.deps import CurrentUser
 from app.infrastructure.persistence.database import get_db_session
 from app.schemas.emotional_chat import (

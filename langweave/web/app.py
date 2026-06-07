@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langweave import __version__
 from langweave.registry import AgentRegistry
 from langweave.web.handlers import register_exception_handlers
-from langweave.web.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+from langweave.web.middleware import SecurityHeadersMiddleware
 from langweave.web.openapi import API_DESCRIPTION, SWAGGER_UI_PARAMETERS, TAGS_METADATA
 from langweave.web.response import ApiResponse
 from langweave.web.routes import router
@@ -31,18 +31,24 @@ def create_app(
     redoc_url: str | None = None,
     openapi_url: str | None = None,
 ) -> FastAPI:
-    """Create a FastAPI app wired to an `AgentRegistry`.
+    """Create a FastAPI app wired to an ``AgentRegistry``.
 
     Args:
         registry: Shared registry; created if omitted.
         title: OpenAPI title.
         on_startup: Called with the registry before serving (register agents here).
         cors_origins: If set, enable CORS for these origins.
-        doc_mode: `swagger2` (default) disables OpenAPI 3 docs; call
-            `setup_swagger2(app)` after mounting routers. `openapi3` uses built-in `/docs`.
-        docs_url: OpenAPI 3 Swagger UI path. Auto-set when `doc_mode=openapi3`.
-        redoc_url: OpenAPI 3 ReDoc path. Auto-set when `doc_mode=openapi3`.
-        openapi_url: OpenAPI 3 JSON path. Auto-set when `doc_mode=openapi3`.
+        doc_mode: ``swagger2`` (default) disables OpenAPI 3 docs; call
+            ``setup_swagger2(app)`` after mounting routers. ``openapi3`` uses built-in ``/docs``.
+        docs_url: OpenAPI 3 Swagger UI path. Auto-set when ``doc_mode=openapi3``.
+        redoc_url: OpenAPI 3 ReDoc path. Auto-set when ``doc_mode=openapi3``.
+        openapi_url: OpenAPI 3 JSON path. Auto-set when ``doc_mode=openapi3``.
+
+    Note:
+        ``RateLimitMiddleware`` is **not** added here because it depends on
+        ``app.infrastructure.cache``.  If rate limiting is desired, add it
+        from the application layer:
+        ``app.add_middleware(RateLimitMiddleware, ...)``
     """
     if doc_mode == "openapi3":
         docs_url = "/docs" if docs_url is None else docs_url
@@ -83,12 +89,6 @@ def create_app(
     )
     app.state.registry = reg
     register_exception_handlers(app)
-
-    # Security: rate limiting
-    app.add_middleware(
-        RateLimitMiddleware,
-        exclude_paths={"/health", "/api/v1/auth/login", "/api/v1/auth/register"},
-    )
 
     # Security: HTTP headers
     app.add_middleware(SecurityHeadersMiddleware)

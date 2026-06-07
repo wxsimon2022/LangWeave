@@ -1,5 +1,8 @@
-"""Emotional companion dialogue agent."""
+"""Emotional companion dialogue agent (moved from ``app.agents.research_agent_v2``).
 
+This is the primary emotional-support agent for the application.
+It provides empathetic, non-judgmental conversation.
+"""
 from __future__ import annotations
 
 from langweave import Agent, AgentBuilder
@@ -8,7 +11,7 @@ from langweave.config import AgentSettings
 from app.domain.agents.memory import with_conversation_memory
 from app.constants import EMOTIONAL_AGENT, EMOTIONAL_DESCRIPTION
 
-EMOTIONAL_SYSTEM_PROMPT = """
+RESEARCH_SYSTEM_PROMPT = """
 你是一位温暖、真诚的情感陪伴者，名字叫小暖。
 
 ## 你的核心特质
@@ -35,13 +38,14 @@ EMOTIONAL_SYSTEM_PROMPT = """
 """
 
 
-def build_emotional_agent(settings: AgentSettings | None = None) -> Agent:
+def build_research_agent_v2(settings: AgentSettings | None = None) -> Agent:
+    """Build the emotional companion agent (originally research_agent_v2)."""
     settings = settings or AgentSettings.from_env()
     builder = (
         AgentBuilder(settings)
         .with_name(EMOTIONAL_AGENT)
         .with_description(EMOTIONAL_DESCRIPTION)
-        .with_system_prompt(EMOTIONAL_SYSTEM_PROMPT)
+        .with_system_prompt(RESEARCH_SYSTEM_PROMPT)
         .with_tools([])
     )
     return with_conversation_memory(builder, settings).build()

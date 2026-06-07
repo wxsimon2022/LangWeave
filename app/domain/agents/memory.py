@@ -1,5 +1,4 @@
 """Apply shared conversation memory (MySQL checkpointer) to dialogue agents."""
-
 from __future__ import annotations
 
 from langweave import AgentBuilder

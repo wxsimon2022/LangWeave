@@ -14,6 +14,7 @@ from app.application.security import hash_password
 from app.infrastructure.persistence.models import User
 from app.logging import setup_logging
 from app.constants import DEFAULT_CORS_ORIGINS
+from app.middleware.rate_limit import RateLimitMiddleware
 from langweave.config import load_dotenv
 from langweave.web import create_app
 from langweave.web.swagger2 import setup_swagger2, swagger2_available
@@ -31,7 +32,6 @@ def _seed_admin() -> None:
     """
     session_factory = get_session_factory()
     with session_factory() as session:
-        # 启动时自动补全 c_users.is_admin 列
         try:
             session.execute(
                 text("SELECT is_admin FROM c_users LIMIT 1")
@@ -75,6 +75,13 @@ def create_business_app() -> FastAPI:
         doc_mode="swagger2" if use_swagger2 else "openapi3",
         cors_origins=DEFAULT_CORS_ORIGINS,
     )
+
+    # Rate limiting — depends on app.infrastructure.cache, so it lives in the app layer
+    app.add_middleware(
+        RateLimitMiddleware,
+        exclude_paths={"/health", "/api/v1/auth/login", "/api/v1/auth/register"},
+    )
+
     include_business_routers(app)
     if use_swagger2:
         setup_swagger2(

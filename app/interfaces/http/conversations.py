@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.services.conversation_service import ConversationService
+from app.application.services.conversation_service import ConversationService
 from app.interfaces.http.deps import CurrentUser
 from app.infrastructure.persistence.database import get_db_session
 from app.schemas.emotional_chat import (

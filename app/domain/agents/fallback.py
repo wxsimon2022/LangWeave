@@ -1,5 +1,4 @@
 """Fallback agents used when model dependencies are unavailable."""
-
 from __future__ import annotations
 
 from typing import Any

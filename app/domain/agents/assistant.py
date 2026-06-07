@@ -1,5 +1,8 @@
-"""Default assistant agent for the application."""
+"""General Assistant Agent — general assistant with calculator and clock tools.
 
+This agent handles general queries, tool-based tasks (calculator,
+current time), and non-emotional user requests.
+"""
 from __future__ import annotations
 
 from langweave import Agent, AgentBuilder
@@ -10,7 +13,8 @@ from app.domain.tools import get_default_tools
 from app.constants import ASSISTANT_AGENT
 
 
-def build_assistant_agent(settings: AgentSettings | None = None) -> Agent:
+def build_general_agent_v2(settings: AgentSettings | None = None) -> Agent:
+    """Build the general assistant agent."""
     settings = settings or AgentSettings.from_env()
     builder = (
         AgentBuilder(settings)
