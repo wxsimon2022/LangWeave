@@ -9,6 +9,7 @@ __pycache__
 .pytest_cache
 *.egg-info
 dist
+!frontends/fe/dist/
 build
 
 # Virtual environments
@@ -37,7 +38,6 @@ frontends/desktop/node_modules
 Thumbs.db
 
 # Build artifacts
-frontends/fe/dist
 frontends/admin/dist
 script/deploy/build
 frontends/desktop/release

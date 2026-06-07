@@ -12,7 +12,6 @@ Startup sequence:
 from __future__ import annotations
 
 import logging
-import os
 
 from fastapi import FastAPI
 from sqlalchemy import text
@@ -92,18 +91,9 @@ def create_business_app() -> FastAPI:
         exclude_paths={"/health", "/api/v1/auth/login", "/api/v1/auth/register"},
     )
 
-    # Serve pre-built frontend SPA from /app/static/ (mounted in Dockerfile).
-    # Falls back to API routes if the file is not found.
-    static_dir = "/app/static"
-    if os.path.isdir(static_dir):
-        from fastapi.staticfiles import StaticFiles
-        app.mount(
-            "/",
-            StaticFiles(directory=static_dir, html=True),
-            name="frontend",
-        )
-
     include_business_routers(app)
+
+
     if use_swagger2:
         setup_swagger2(
             app,

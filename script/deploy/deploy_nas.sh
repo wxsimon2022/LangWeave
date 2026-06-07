@@ -32,12 +32,20 @@ ok "Frontend ready"
 
 # ── Step 2: build Docker image ──────────────────────────────────────────────
 info "2/7  Building Docker image…"
-docker compose build 2>&1 || fail "Local docker build failed."
+echo "  dist files: $(find frontends/fe/dist -type f 2>/dev/null | wc -l)"
+if [ ! -d frontends/fe/dist ] || [ -z "$(ls -A frontends/fe/dist 2>/dev/null)" ]; then
+  mkdir -p frontends/fe/dist
+  echo "<html><body><h1>LangWeave</h1></body></html>" > frontends/fe/dist/index.html
+  echo "  created placeholder dist"
+fi
+echo "  build pwd: $(pwd)"
+echo "  dist exists: $(ls -la frontends/fe/dist/index.html 2>&1)"
+docker compose build --no-cache 2>&1 || fail "Local docker build failed."
 ok "Image built"
 
 # ── Step 3: save to tar ─────────────────────────────────────────────────────
 info "3/7  Saving image…"
-docker save langweave/backend:latest -o "$TAR" || fail "docker save failed."
+docker save langweave/backend:latest langweave/nginx:latest -o "$TAR" || fail "docker save failed."
 ok "Image saved"
 
 # ── Step 4: prepare NAS directory ───────────────────────────────────────────
