@@ -59,6 +59,7 @@ _INTENT_TO_AGENT: dict[str, str] = {
     "general_chat": "assistant",
     "order_query": "assistant",
     "calculation": "assistant",
+    "file_operation": "file_assistant",
     "unknown": "assistant",
 }
 

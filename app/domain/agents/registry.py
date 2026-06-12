@@ -13,6 +13,7 @@ from langweave.config import AgentSettings
 from langweave.registry import AgentRegistry
 
 from app.domain.agents.emotional import build_research_agent_v2
+from app.domain.agents.file_assistant import build_file_assistant_agent
 from app.domain.agents.assistant import build_general_agent_v2
 from app.domain.agents.intent import build_intent_agent
 from app.domain.agents.fallback import build_unavailable_agent
@@ -23,6 +24,8 @@ from app.constants import (
     INTENT_DESCRIPTION,
     ASSISTANT_DESCRIPTION,
     EMOTIONAL_DESCRIPTION,
+    FILE_ASSISTANT_AGENT,
+    FILE_ASSISTANT_DESCRIPTION,
 )
 
 
@@ -48,6 +51,7 @@ def _register_fallback_agents(registry: AgentRegistry, error_message: str) -> No
         (INTENT_AGENT, INTENT_DESCRIPTION),
         (ASSISTANT_AGENT, ASSISTANT_DESCRIPTION),
         (EMOTIONAL_AGENT, EMOTIONAL_DESCRIPTION),
+        (FILE_ASSISTANT_AGENT, FILE_ASSISTANT_DESCRIPTION),
     ]
     for name, description in agents:
         registry.register(
@@ -67,3 +71,4 @@ def register_agents(registry: AgentRegistry) -> None:
     registry.register(build_intent_agent(settings), overwrite=True)
     registry.register(build_general_agent_v2(settings), overwrite=True)
     registry.register(build_research_agent_v2(settings), overwrite=True)
+    registry.register(build_file_assistant_agent(settings), overwrite=True)

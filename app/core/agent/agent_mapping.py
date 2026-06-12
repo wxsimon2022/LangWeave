@@ -4,7 +4,7 @@ Maps intent types to agent names and provides helper for backward compatibility.
 """
 from __future__ import annotations
 
-from app.constants import DEFAULT_AGENT_NAME, INTENT_AGENT, ASSISTANT_AGENT, EMOTIONAL_AGENT
+from app.constants import DEFAULT_AGENT_NAME, INTENT_AGENT, ASSISTANT_AGENT, EMOTIONAL_AGENT, FILE_ASSISTANT_AGENT
 
 # Intent → agent name mapping (source of truth)
 INTENT_TO_AGENT: dict[str, str] = {
@@ -12,6 +12,7 @@ INTENT_TO_AGENT: dict[str, str] = {
     "general_chat": ASSISTANT_AGENT,
     "order_query": ASSISTANT_AGENT,
     "calculation": ASSISTANT_AGENT,
+    "file_operation": FILE_ASSISTANT_AGENT,
     "unknown": ASSISTANT_AGENT,
 }
 

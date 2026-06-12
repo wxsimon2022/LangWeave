@@ -18,6 +18,7 @@ INTENT_SYSTEM_PROMPT = """你是意图识别模块。只分析用户输入，输
 - general_chat: 闲聊、通用问答、打招呼（无明显情绪诉求）
 - order_query: 查订单、物流、发货、退款状态
 - calculation: 数学计算、换算
+- file_operation: 文件处理、读取文件、查看文件内容、搜索文件、浏览目录、查看文件信息
 - unknown: 无法归类
 
 规则：
@@ -26,6 +27,7 @@ INTENT_SYSTEM_PROMPT = """你是意图识别模块。只分析用户输入，输
 3. target_agent 填写处理该意图的 agent 名称：
    - emotional_chat → emotional
    - order_query / calculation / general_chat → assistant
+   - file_operation → file_assistant
    - unknown → assistant
 4. reasoning 用一句话说明分类依据
 """

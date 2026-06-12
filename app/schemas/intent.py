@@ -11,6 +11,7 @@ IntentType = Literal[
     "general_chat",
     "order_query",
     "calculation",
+    "file_operation",
     "unknown",
 ]
 

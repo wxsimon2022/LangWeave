@@ -16,11 +16,13 @@ from __future__ import annotations
 INTENT_AGENT = "intent"              # Classifies user intent (structured output)
 ASSISTANT_AGENT = "assistant"        # General helper w/ calculator, clock tools
 EMOTIONAL_AGENT = "emotional"        # Empathetic companion (小暖)
+FILE_ASSISTANT_AGENT = "file_assistant"  # File reading/processing assistant
 DEFAULT_TARGET_AGENT = ASSISTANT_AGENT  # Fallback when intent is unknown
 
 INTENT_DESCRIPTION = "Classifies user intent via structured output"
 ASSISTANT_DESCRIPTION = "General assistant with calculator and clock tools"
 EMOTIONAL_DESCRIPTION = "情感陪伴与倾听，提供共情式对话支持（支持多轮记忆）"
+FILE_ASSISTANT_DESCRIPTION = "文件助手，可读取、搜索和浏览项目文件"
 
 # New conversations default to the emotional agent; the intent classifier
 # re-routes after the first message if needed.
