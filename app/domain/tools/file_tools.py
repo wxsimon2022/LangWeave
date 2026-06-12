@@ -208,4 +208,7 @@ def write_file(path: str, content: str, overwrite: bool = False) -> str:
     target.write_text(content, encoding="utf-8")
     size = _fmt_size(target.stat().st_size)
     action = "覆盖" if target.exists() and overwrite else "新建"
+    download_url = f"/api/v1/files/{target.relative_to(PROJECT_ROOT / 'docs')}" if (PROJECT_ROOT / 'docs') in target.parents or target.parent == (PROJECT_ROOT / 'docs') else ""
+    if download_url:
+        return f"✅ 已{action}文件: {path} ({size})\n📥 下载链接: {download_url}\n点击链接或复制到浏览器下载"
     return f"✅ 已{action}文件: {path} ({size})"

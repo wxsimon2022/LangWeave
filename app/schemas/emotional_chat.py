@@ -51,6 +51,10 @@ class EmotionalChatResponse(BaseModel):
     agent: str
     user_message: EmotionalMessageItem
     assistant_message: EmotionalMessageItem
+    download_url: str | None = Field(
+        default=None,
+        description="Download URL for generated file, if applicable",
+    )
 
 
 class ConversationSummary(BaseModel):

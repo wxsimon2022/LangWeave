@@ -18,7 +18,7 @@ INTENT_SYSTEM_PROMPT = """你是意图识别模块。只分析用户输入，输
 - general_chat: 闲聊、通用问答、打招呼（无明显情绪诉求）
 - order_query: 查订单、物流、发货、退款状态
 - calculation: 数学计算、换算
-- file_operation: 文件处理、读取文件、查看文件内容、搜索文件、浏览目录、查看文件信息
+- file_operation: 文件操作：读取、搜索、浏览文件；**生成/创建/写文档**（如"帮我生成一个介绍民勤的文档"、"帮我写一份 README"、"创建一份 API 文档")
 - unknown: 无法归类
 
 规则：

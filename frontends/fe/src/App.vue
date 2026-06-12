@@ -197,6 +197,10 @@ const mdRenderer = (() => {
       /https?:\/\/[^\s<]+/g,
       '<a href="$&" target="_blank" rel="noopener">$&</a>'
     );
+    html = html.replace(
+      /\/api\/v1\/files\/[^\s<]+/g,
+      '<a href="$&" target="_blank" rel="noopener" download>📥 $&</a>'
+    );
     return html;
   }
 
@@ -641,6 +645,7 @@ async function handleSend() {
         if (target) {
           target.text =
             payload?.assistant_message?.content || target.text || "我在这里陪着你。";
+          target.downloadUrl = payload?.download_url || null;
           target.meta = payload?.assistant_message?.created_at
             ? new Date(payload.assistant_message.created_at).toLocaleString()
             : "已完成";
@@ -702,6 +707,14 @@ onMounted(() => {
 onUnmounted(() => {
   teardownUpdateListener();
 });
+
+// ============================
+// File download
+// ============================
+function downloadFile(url) {
+  if (!url) return;
+  window.open(url, "_blank");
+}
 </script>
 
 <template>
@@ -936,6 +949,11 @@ onUnmounted(() => {
               <div v-else v-html="mdRenderer(m.text)"></div>
             </div>
             <span v-if="m.meta" class="msg-meta">{{ m.meta }}</span>
+            <div v-if="m.role === 'assistant' && m.downloadUrl" class="download-bar">
+              <button class="download-btn" @click="downloadFile(m.downloadUrl)">
+                ⬇️ 下载文件
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1814,4 +1832,28 @@ main { width: 100%; }
 .electron-fullscreen .side {
   width: 280px;
 }
+/* Download button */
+.download-bar {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border, #e0d6ce);
+}
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
+  border: 1px solid var(--accent, #b3805a);
+  border-radius: 6px;
+  background: var(--accent-bg, #f5efe9);
+  color: var(--accent, #b3805a);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.download-btn:hover {
+  background: var(--accent, #b3805a);
+  color: #fff;
+}
+
 </style>

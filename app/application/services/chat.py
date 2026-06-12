@@ -185,6 +185,7 @@ class ChatService:
                 })
 
         final_reply = ""
+        _download_url: str | None = None
 
         try:
             async for chunk in agent.astream(
@@ -193,7 +194,14 @@ class ChatService:
                 stream_mode="messages",
             ):
                 text = chunk_to_text(chunk)
+                # Also scan tool message chunks for download URLs
                 if not text:
+                    _payload = chunk[0] if isinstance(chunk, tuple) else chunk
+                    if hasattr(_payload, "content") and isinstance(_payload.content, str) and "/api/v1/files/" in _payload.content:
+                        import re as _re
+                        _match = _re.search(r"/api/v1/files/[^\s<]+", _payload.content)
+                        if _match:
+                            _download_url = _match.group()
                     continue
                 final_reply += text
                 yield self._sse_event("chunk", {"content": text})
@@ -233,6 +241,7 @@ class ChatService:
                 agent=conversation.agent_name,
                 user_message=_message_to_schema(user_message),
                 assistant_message=_message_to_schema(assistant_message),
+                download_url=_download_url,
             ).model_dump(mode="json"),
         )
 

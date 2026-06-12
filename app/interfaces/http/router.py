@@ -32,3 +32,7 @@ def include_business_routers(app: FastAPI) -> FastAPI:
     """Mount all business routers onto the given app."""
     app.include_router(router)
     return app
+
+# File download router — generated documents
+from app.interfaces.http.files.download import router as files_router
+router.include_router(files_router)
