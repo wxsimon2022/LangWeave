@@ -64,7 +64,7 @@ def register(
         logger.warning("Register anomaly: %s", reason)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Registration limit reached from this IP. Please try later.",
+            detail="注册过于频繁，请稍后再试",
         )
     try:
         response = service.register(body.username, body.password)
@@ -92,7 +92,7 @@ def login(
         logger.warning("Login anomaly: %s", reason)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try later.",
+            detail="登录过于频繁，请稍后再试",
         )
     try:
         response = service.login(body.username, body.password)
@@ -131,7 +131,7 @@ def refresh(
     except (JWTError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail="刷新令牌无效或已过期",
         ) from exc
 
 

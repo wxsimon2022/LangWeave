@@ -39,7 +39,7 @@ class AuthService:
 
         existing = self._db.scalar(select(User).where(User.username == username))
         if existing is not None:
-            msg = "Username already exists"
+            msg = "用户名已存在"
             raise ValueError(msg)
 
         user = User(username=username, password_hash=hash_password(password))
@@ -55,7 +55,7 @@ class AuthService:
 
         user = self._db.scalar(select(User).where(User.username == username))
         if user is None or not verify_password(password, user.password_hash):
-            msg = "Invalid username or password"
+            msg = "用户名或密码错误"
             raise ValueError(msg)
         return self._build_token_response(user)
 
@@ -119,7 +119,7 @@ class AuthService:
 
         existing = self._db.scalar(select(User).where(User.username == username))
         if existing is not None:
-            msg = "Username already exists"
+            msg = "用户名已存在"
             raise ValueError(msg)
 
         user = User(
@@ -139,7 +139,7 @@ class AuthService:
             msg = f"User {user_id} not found"
             raise ValueError(msg)
         if len(new_password.strip()) < 6:
-            msg = "Password must be at least 6 characters"
+            msg = "密码至少需要6位"
             raise ValueError(msg)
         user.password_hash = hash_password(new_password.strip())
         self._db.commit()
@@ -232,8 +232,8 @@ class AuthService:
     @staticmethod
     def _validate_credentials(username: str, password: str) -> None:
         if len(username) < 3:
-            msg = "Username must be at least 3 characters"
+            msg = "用户名至少需要3个字符"
             raise ValueError(msg)
         if len(password) < 6:
-            msg = "Password must be at least 6 characters"
+            msg = "密码至少需要6位"
             raise ValueError(msg)
