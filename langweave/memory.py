@@ -10,6 +10,7 @@ import logging
 import os
 import uuid
 import warnings
+import asyncio
 from functools import lru_cache
 from typing import Any
 
@@ -80,19 +81,11 @@ class _LazyAsyncCheckpointer(BaseCheckpointSaver):
 
     async def _ensure(self) -> BaseCheckpointSaver:
         if self._real is not None:
-            # Connection health check — MySQL may have timed out the
-            # connection between requests (wait_timeout, network glitch).
-            # Ping the underlying connection and recreate if dead.
             conn = getattr(self._real, "conn", None)
-            if conn is not None:
-                try:
-                    async with conn.cursor() as cur:
-                        await cur.execute("SELECT 1")
-                except Exception:
-                    logger.info("Checkpointer connection lost, reconnecting...")
-                    self._real = None
-            else:
+            if conn is not None and not conn.closed:
                 return self._real
+            logger.info("Checkpointer connection lost, reconnecting...")
+            self._real = None
         if self._real is None:
             saver = await _create_async_mysql_checkpointer(self._url)
             self._real = saver
