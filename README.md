@@ -1,5 +1,11 @@
 # LangWeave · 织语
 
+[![GitHub Repo stars](https://img.shields.io/github/stars/wxsimon2022/LangWeave?style=social)](https://github.com/wxsimon2022/LangWeave)
+[![GitHub](https://img.shields.io/github/license/wxsimon2022/LangWeave)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![LangChain](https://img.shields.io/badge/langchain-1.x-green.svg)](https://github.com/langchain-ai/langchain)
+[![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688.svg)](https://fastapi.tiangolo.com/)
+
 **LangWeave**（织语）是基于 **LangChain 1.x** 与 **LangGraph** 的 Python Agents 框架与完整聊天应用。在官方 `create_agent` 之上提供统一构建、注册、多 Agent 编排与 FastAPI Web 服务，并附带**情感陪伴 + AI 助手**双 Agent 的聊天应用（Vue 3 SPA 前端 + Electron 桌面端 + 管理后台）。
 
 > **命名**：Weave = 编织 —— 将模型、工具、中间件与多个 Agent 编织成可运行的图。

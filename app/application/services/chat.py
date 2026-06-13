@@ -188,23 +188,27 @@ class ChatService:
         _download_url: str | None = None
 
         try:
-            async for chunk in agent.astream(
+            async for event in agent.astream(
                 {"messages": [*history, HumanMessage(content=content)]},
                 thread_id=conversation.thread_id,
-                stream_mode="messages",
+                stream_mode=["messages", "updates"],
             ):
-                text = chunk_to_text(chunk)
-                # Also scan tool message chunks for download URLs
-                if not text:
-                    _payload = chunk[0] if isinstance(chunk, tuple) else chunk
-                    if hasattr(_payload, "content") and isinstance(_payload.content, str) and "/api/v1/files/" in _payload.content:
-                        import re as _re
-                        _match = _re.search(r"/api/v1/files/[^\s<]+", _payload.content)
-                        if _match:
-                            _download_url = _match.group()
-                    continue
-                final_reply += text
-                yield self._sse_event("chunk", {"content": text})
+                mode, data = event
+                if mode == "messages":
+                    text = chunk_to_text(data)
+                    if text:
+                        final_reply += text
+                        yield self._sse_event("chunk", {"content": text})
+                elif mode == "updates":
+                    # Scan state updates for tool results containing download URLs
+                    for _node_name, _update in data.items() if isinstance(data, dict) else []:
+                        _msgs = _update.get("messages", []) if isinstance(_update, dict) else []
+                        for _msg in _msgs:
+                            if hasattr(_msg, "content") and isinstance(_msg.content, str) and "/api/v1/files/" in _msg.content:
+                                import re as _re
+                                _match = _re.search(r"/api/v1/files/[^\s<]+", _msg.content)
+                                if _match:
+                                    _download_url = _match.group()
         except GeneratorExit:
             return
         except Exception:

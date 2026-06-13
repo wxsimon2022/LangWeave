@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software in your work, please cite it."
+title: "LangWeave"
+version: 0.1.0
+date-released: 2026-06-14
+authors:
+  - family-names: "Anon"
+    given-names: "LangWeave"
+    alias: "wxsimon2022"
+    affiliation: "LangWeave"
+type: software
+repository-code: "https://github.com/wxsimon2022/LangWeave"
+abstract: "LangWeave（织语）是基于 LangChain 1.x 与 LangGraph 的 Python Agents 框架与聊天应用，支持多 Agent 编排、流式 SSE 输出、MySQL 持久化多轮对话记忆，带情感陪伴 + AI 助手双 Agent。"
+keywords:
+  - langchain
+  - langgraph
+  - ai-agents
+  - fastapi
+  - chatbot
+  - emotional-support
+  - python
+license: MIT
+identifiers:
+  - type: url
+    value: "https://chat.mybfs.cn/"

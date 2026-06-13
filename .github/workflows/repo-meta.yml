@@ -1,0 +1,54 @@
+# Auto-maintain GitHub repository topics and metadata
+# Runs on push to master/main when relevant files change
+
+name: Repo Metadata
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'CITATION.cff'
+      - 'README.md'
+  workflow_dispatch:
+
+jobs:
+  sync-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync Repository Topics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const topics = [
+              "langchain",
+              "langgraph",
+              "ai-agents",
+              "python",
+              "fastapi",
+              "vue",
+              "chatbot",
+              "emotional-support",
+              "deepseek",
+              "llm",
+              "agent-framework"
+            ];
+            await github.rest.repos.replaceAllTopics({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              names: topics,
+            });
+            console.log(`Set ${topics.length} topics: ${topics.join(', ')}`);
+
+      - name: Update Repository Description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              description: "LangChain + LangGraph Python Agents 框架与 AI 情感陪伴聊天应用。支持多 Agent 编排、流式输出、多轮对话记忆。",
+              homepage: "https://chat.mybfs.cn/",
+            });
+            console.log('Description and homepage updated');
