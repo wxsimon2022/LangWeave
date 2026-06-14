@@ -35,4 +35,6 @@ def include_business_routers(app: FastAPI) -> FastAPI:
 
 # File download router — generated documents
 from app.interfaces.http.files.download import router as files_router
+from app.interfaces.http.visitor_routes import router as visitor_router
 router.include_router(files_router)
+router.include_router(visitor_router)
