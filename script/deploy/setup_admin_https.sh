@@ -16,7 +16,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SSL_DIR="/home/biu/chat/current/ssl"
 NGINX_CONF="$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf"
-NGINX_SBIN="/usr/local/nginx/sbin/nginx"
+NGINX_SBIN="nginx"
 DOMAIN="admin.meet.mybfs.cn"
 EMAIL="admin@mybfs.cn"
 
@@ -75,7 +75,7 @@ echo "[5/7] 安装证书到 nginx 目录..."
 ~/.acme.sh/acme.sh --install-cert -d "$DOMAIN" \
   --key-file "$SSL_DIR/${DOMAIN}.key" \
   --fullchain-file "$SSL_DIR/${DOMAIN}_bundle.pem" \
-  --reloadcmd "$NGINX_SBIN -s reload"
+  --reloadcmd "nginx -s reload"
 echo "  ✅ 证书已安装"
 
 # ---- 6. 备份原有配置 / 写入新配置 ----

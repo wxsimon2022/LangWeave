@@ -92,8 +92,8 @@ fi
 echo ""
 echo "[5/5] Reloading nginx..."
 ssh "$REMOTE_HOST" '
-  if /usr/local/nginx/sbin/nginx -t 2>/dev/null; then
-    /usr/local/nginx/sbin/nginx -s reload
+  if nginx -t 2>/dev/null; then
+    nginx -s reload
     echo "  --> nginx reloaded successfully"
   else
     echo "  --> nginx config test failed, not reloading"

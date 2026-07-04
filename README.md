@@ -381,7 +381,7 @@ app/                                # 业务层
 └── bootstrap.py                    应用组合根（DB 初始化 → Agent 注册 → 启动）
 
 frontends/                          前端项目（Vue 3 SPA + Electron）
-migrations/                         数据库迁移 SQL
+sql/                             数据库迁移 SQL
 scripts/                            部署脚本
 config/                             配置文件（MCP、Prompts）
 ```

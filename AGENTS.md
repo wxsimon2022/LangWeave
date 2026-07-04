@@ -28,7 +28,7 @@ frontends/
   admin/                   # Admin dashboard
   desktop/                 # Electron desktop client
 config/                    # YAML config files (MCP, prompts)
-migrations/                # SQL migration scripts
+sql/                            # SQL migration scripts
 scripts/                   # Utility scripts (e.g., init_agents.py)
 script/deploy/             # Deployment pipeline (Docker + nginx)
 docs/                      # Documentation
@@ -101,7 +101,7 @@ PR descriptions should include:
 - A summary of the change and motivation.
 - Links to any related issues.
 - Screenshots for frontend changes.
-- Deployment notes if migrations or environment variables are added.
+- Deployment notes if SQL 或环境 variables are added.
 
 ## Architecture Overview
 

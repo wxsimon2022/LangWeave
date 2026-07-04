@@ -22,7 +22,7 @@ ADMIN_DIR="$FRONTENDS_DIR/admin"
 DESKTOP_DIR="$FRONTENDS_DIR/desktop"
 REMOTE_HOST="root@124.223.72.223"
 REMOTE_APP_DIR="/home/biu/chat"
-REMOTE_NGINX_DIR="/usr/local/nginx/conf/vhost"
+REMOTE_NGINX_DIR="/etc/nginx/conf.d"
 REMOTE_CURRENT_DIR="$REMOTE_APP_DIR/current"
 REMOTE_ENV_FILE="$REMOTE_APP_DIR/shared/.env"
 REMOTE_SHARED_DIR="$REMOTE_APP_DIR/shared"
@@ -168,8 +168,8 @@ if ! pgrep -f '[u]vicorn main:app --host 0.0.0.0 --port 8000' >/dev/null 2>&1; t
   exit 1
 fi
 
-/usr/local/nginx/sbin/nginx -t
-/usr/local/nginx/sbin/nginx -s reload
+nginx -t
+nginx -s reload
 "
 
 echo "Deployment complete"
@@ -264,5 +264,5 @@ Shared venv:
 Useful remote checks:
   tail -n 200 $REMOTE_CURRENT_DIR/app.log
   ps -ef | grep 'uvicorn main:app'
-  /usr/local/nginx/sbin/nginx -t
+  nginx -t
 EOF
