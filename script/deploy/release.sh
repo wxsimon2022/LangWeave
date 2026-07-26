@@ -108,20 +108,27 @@ fi
 "$REMOTE_VENV_DIR/bin/pip" install -r "$REMOTE_CURRENT_DIR/requirements.txt" -q
 
 echo "  → 启动 Uvicorn"
-pkill -f "\[u\]vicorn main:app" || true
-echo "  → 等待端口 8000 释放..."
-for i in $(seq 1 10); do
-  if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
-    break
+  pkill -f "\[u\]vicorn main:app" || true
+  echo "  → 等待进程退出..."
+  for i in $(seq 1 8); do
+    if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
+      sleep 1
+      break
+    fi
+    sleep 1
+  done
+  # 如果进程还在，直接杀端口
+  if ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
+    echo "  → 端口仍被占用，强制释放..."
+    fuser -k 8000/tcp 2>/dev/null || true
+    sleep 2
   fi
-  sleep 1
-done
 cd "$REMOTE_CURRENT_DIR"
 touch app.log
 setsid "$REMOTE_VENV_DIR/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &
 sleep 3
 
-if ! pgrep -f "\[u\]vicorn main:app" >/dev/null 2>&1; then
+if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
   echo "  ⚠ Uvicorn 启动失败，查看日志:"
   tail -n 30 app.log || true
   exit 1
