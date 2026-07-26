@@ -118,7 +118,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:3002;
+        proxy_pass http://127.0.0.1:30002;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -129,7 +129,7 @@ server {
     }
 
     location /health {
-        proxy_pass http://127.0.0.1:3002;
+        proxy_pass http://127.0.0.1:30002;
         proxy_read_timeout 10s;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -139,7 +139,7 @@ server {
     }
 
     location /docs {
-        proxy_pass http://127.0.0.1:3002;
+        proxy_pass http://127.0.0.1:30002;
         proxy_read_timeout 10s;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -149,7 +149,7 @@ server {
     }
 
     location /openapi.json {
-        proxy_pass http://127.0.0.1:3002;
+        proxy_pass http://127.0.0.1:30002;
         proxy_read_timeout 10s;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

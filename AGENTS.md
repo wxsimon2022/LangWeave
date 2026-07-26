@@ -44,7 +44,7 @@ docs/                      # Documentation
 
 ```bash
 # Development
-uvicorn main:app --reload --port 3002           # Backend dev server
+uvicorn main:app --reload --port 30002           # Backend dev server
 pip install -r requirements.txt                 # Install deps
 pip install -e .[dev]                           # Install dev deps
 pytest                                          # Run tests

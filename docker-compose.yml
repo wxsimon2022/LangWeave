@@ -47,7 +47,7 @@ services:
       LANGWEAVE_CORS_ORIGINS: ${LANGWEAVE_CORS_ORIGINS:-http://localhost,http://chat.mybfs.cn}
       LANGWEAVE_DEBUG: ${LANGWEAVE_DEBUG:-false}
     expose:
-      - "3002"
+      - "30002"
 
   # ---------------------------------------------------------------------------
   # Nginx (reverse proxy + frontend static files)
