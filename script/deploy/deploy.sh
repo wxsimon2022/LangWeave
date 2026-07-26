@@ -117,16 +117,6 @@ rm -rf "$BUILD_DIR"
   echo ""
   echo "[deploy] [3/6] 打包..."
 
-  # SSL 证书
-  SSL_SRC="$ROOT_DIR/script/chat.mybfs.cn_nginx"
-  if [ -d "$SSL_SRC" ]; then
-    mkdir -p "$RELEASE_DIR/ssl"
-    cp "$SSL_SRC/chat.mybfs.cn.key"        "$RELEASE_DIR/ssl/" 2>/dev/null || true
-    cp "$SSL_SRC/chat.mybfs.cn_bundle.pem" "$RELEASE_DIR/ssl/" 2>/dev/null || true
-    cp "$SSL_SRC/chat.mybfs.cn_bundle.crt" "$RELEASE_DIR/ssl/" 2>/dev/null || true
-    echo "  → SSL 证书: $RELEASE_DIR/ssl/"
-  fi
-
   # 桌面端
   if [ "$SKIP_DESKTOP" = false ] && [ -f "$ROOT_DIR/script/deploy/build_desktop.sh" ]; then
     echo "  → 桌面端..."
