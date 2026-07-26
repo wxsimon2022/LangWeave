@@ -57,7 +57,7 @@ class AgentBuilder:
 
     def with_deepseek(
         self,
-        model: str = "deepseek-chat",
+        model: str = "deepseek-v4-pro",
         *,
         temperature: float | None = None,
         max_tokens: int | None = None,

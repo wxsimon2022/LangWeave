@@ -1,7 +1,7 @@
 """Run an agent with DeepSeek (requires DEEPSEEK_API_KEY)."""
 
 from langweave import AgentBuilder
-from langweave.models import DEEPSEEK_CHAT
+from langweave.models import DEEPSEEK_V4_PRO
 from langweave.tools import calculator
 
 
@@ -9,7 +9,7 @@ def main() -> None:
     agent = (
         AgentBuilder()
         .with_name("deepseek-assistant")
-        .with_deepseek(DEEPSEEK_CHAT, temperature=0.3)
+        .with_deepseek(DEEPSEEK_V4_PRO, temperature=0.3)
         .with_system_prompt("You are a helpful assistant. Use tools for math.")
         .with_tools([calculator])
         .build()

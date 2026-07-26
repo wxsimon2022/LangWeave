@@ -82,7 +82,7 @@ cp .env.example .env
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key
-LANGWEAVE_MODEL=deepseek:deepseek-chat
+LANGWEAVE_MODEL=deepseek:deepseek-v4-pro
 LANGWEAVE_DATABASE_URL=mysql+pymysql://user:password@host:3306/dbname
 ```
 
@@ -93,7 +93,7 @@ from langweave.tools import calculator
 agent = (
     AgentBuilder()
     .with_name("math")
-    .with_deepseek("deepseek-chat", temperature=0.3)
+    .with_deepseek("deepseek-v4-pro", temperature=0.3)
     .with_tools([calculator])
     .with_system_prompt("Use tools for arithmetic.")
     .build()
@@ -107,8 +107,8 @@ print(agent.chat("99 * 101 等于多少？"))
 ```python
 from langweave import AgentBuilder, chat_model
 
-agent = AgentBuilder().with_model(chat_model("deepseek-chat")).build()
-# 或: .with_model("deepseek:deepseek-reasoner")
+agent = AgentBuilder().with_model(chat_model("deepseek-v4-pro")).build()
+# 或: .with_model("deepseek:deepseek-v4-flash")
 ```
 
 ### OpenAI（可选）
@@ -335,7 +335,7 @@ docker compose up -d --build
 | 变量 | 说明 | 必填 |
 |------|------|------|
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | 推荐 |
-| `LANGWEAVE_MODEL` | 默认模型（默认 `deepseek:deepseek-chat`） | |
+| `LANGWEAVE_MODEL` | 默认模型（默认 `deepseek:deepseek-v4-pro`） | |
 | `LANGWEAVE_DATABASE_URL` | MySQL 连接（必填，应用强依赖 MySQL，不支持 SQLite） | **是** |
 | `LANGWEAVE_JWT_SECRET` | JWT 签名密钥 | 生产必填 |
 | `LANGWEAVE_JWT_EXPIRE_MINUTES` | JWT 过期分钟数（默认 120） | |

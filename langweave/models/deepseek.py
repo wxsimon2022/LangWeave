@@ -7,13 +7,13 @@ from typing import Any
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 
-DEEPSEEK_CHAT = "deepseek-chat"
-DEEPSEEK_REASONER = "deepseek-reasoner"
+DEEPSEEK_V4_PRO = "deepseek-v4-pro"
+DEEPSEEK_V4_FLASH = "deepseek-v4-flash"
 
-_DEFAULT_MODELS = (DEEPSEEK_CHAT, DEEPSEEK_REASONER)
+_DEFAULT_MODELS = (DEEPSEEK_V4_PRO, DEEPSEEK_V4_FLASH)
 
 
-def model_id(name: str = DEEPSEEK_CHAT) -> str:
+def model_id(name: str = DEEPSEEK_V4_PRO) -> str:
     """Return an `init_chat_model`-compatible model string."""
     if ":" in name:
         return name
@@ -29,7 +29,7 @@ def _api_key(explicit: str | None) -> str | None:
 
 
 def chat_model(
-    model: str = DEEPSEEK_CHAT,
+    model: str = DEEPSEEK_V4_PRO,
     *,
     temperature: float | None = None,
     max_tokens: int | None = None,
@@ -40,7 +40,7 @@ def chat_model(
 
     Requires `langchain-deepseek` and `DEEPSEEK_API_KEY` (or pass `api_key`).
 
-    Common models: `deepseek-chat`, `deepseek-reasoner`.
+    Common models: `deepseek-v4-pro`, `deepseek-v4-flash`.
     """
     model_kwargs: dict[str, Any] = dict(kwargs)
     if temperature is not None:

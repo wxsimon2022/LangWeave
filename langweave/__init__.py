@@ -3,7 +3,7 @@
 from langweave.agent import Agent
 from langweave.builder import AgentBuilder
 from langweave.config import AgentSettings
-from langweave.models import DEEPSEEK_CHAT, DEEPSEEK_REASONER, chat_model, model_id
+from langweave.models import DEEPSEEK_V4_PRO, DEEPSEEK_V4_FLASH, chat_model, model_id
 from langweave.registry import AgentRegistry
 
 __all__ = [
@@ -11,8 +11,8 @@ __all__ = [
     "AgentBuilder",
     "AgentRegistry",
     "AgentSettings",
-    "DEEPSEEK_CHAT",
-    "DEEPSEEK_REASONER",
+    "DEEPSEEK_V4_PRO",
+    "DEEPSEEK_V4_FLASH",
     "chat_model",
     "model_id",
 ]

@@ -50,8 +50,8 @@ class AgentSettings(BaseModel):
     """Default model and runtime settings (overridable via LANGWEAVE_* env vars)."""
 
     model: str = Field(
-        default="deepseek:deepseek-chat",
-        description="Model for init_chat_model, e.g. deepseek:deepseek-chat",
+        default="deepseek:deepseek-v4-pro",
+        description="Model for init_chat_model, e.g. deepseek:deepseek-v4-pro",
     )
     system_prompt: str | None = Field(
         default=None,

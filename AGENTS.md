@@ -110,7 +110,7 @@ LangWeave is a **LangChain agents framework** with a FastAPI HTTP front. Request
 1. **FastAPI routes** (`langweave/web/routes.py`) → auth middleware → agent dispatch.
 2. **Agent orchestration** (`langweave/agent.py`, `langweave/builder.py`) constructs a LangGraph state graph for each conversation.
 3. **Conversation memory** (`langweave/memory.py`) persists thread history to MySQL via `LangGraphCheckpointMySQL` (AIOMySQLSaver).
-4. **LLM providers** are selected at startup via `LANGWEAVE_MODEL` (e.g., `deepseek:deepseek-chat`). DeepSeek is the default; OpenAI is optional.
+4. **LLM providers** are selected at startup via `LANGWEAVE_MODEL` (e.g., `deepseek:deepseek-v4-pro`). DeepSeek is the default; OpenAI is optional.
 
 External dependencies: **MySQL** (required, used for checkpoints and agent data), **Redis** (optional, for future caching/sessions).
 

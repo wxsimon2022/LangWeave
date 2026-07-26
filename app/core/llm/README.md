@@ -4,7 +4,7 @@
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `LANGWEAVE_MODEL` | 默认模型 ID | `deepseek:deepseek-chat` |
+| `LANGWEAVE_MODEL` | 默认模型 ID | `deepseek:deepseek-v4-pro` |
 | `LANGWEAVE_TEMPERATURE` | 采样温度 | `0.3` |
 | `LANGWEAVE_MAX_TOKENS` | 最大生成 token | `4096` |
 | `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | `sk-xxx` |
@@ -12,7 +12,7 @@
 
 ## 支持的模型提供商
 
-- **DeepSeek**: `deepseek:deepseek-chat`, `deepseek:deepseek-reasoner`
+- **DeepSeek**: `deepseek:deepseek-v4-pro`, `deepseek:deepseek-v4-flash`
 - **OpenAI**: `openai:gpt-4o`, `openai:gpt-4o-mini`, `openai:gpt-4-turbo`
 
 ## 代码中使用
@@ -20,6 +20,6 @@
 ```python
 from app.core.llm import create_llm
 
-llm = create_llm("deepseek:deepseek-chat", temperature=0.3)
+llm = create_llm("deepseek:deepseek-v4-pro", temperature=0.3)
 ```
 """
