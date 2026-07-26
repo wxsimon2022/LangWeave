@@ -127,7 +127,7 @@ export LANGWEAVE_MODEL=openai:gpt-4o-mini
 
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 3002
 ```
 
 启动前需配置 `.env`，完整示例见 `.env.example`：
@@ -180,7 +180,7 @@ SSE 事件：
 | `error` | 流式异常 | `{message: "..."}` |
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
+curl -X POST http://127.0.0.1:3002/api/v1/unified/stream \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"message": "我最近好焦虑，心情很差..."}'
@@ -231,7 +231,7 @@ result = await service.recognize_and_chat("查订单10001")  # 含 reply
 | POST | `/api/v1/agents/{name}/stream` | SSE 流式输出 |
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/agents/assistant/chat \
+curl -X POST http://127.0.0.1:3002/api/v1/agents/assistant/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "12 * 8 = ?"}'
 ```
@@ -272,7 +272,7 @@ npm run dev
 
 - 默认地址：`http://127.0.0.1:5173`
 - **聊天入口**：`/app.html`（Vite 构建 input）；宣传页为 `/`（`public/index.html`）
-- 本地 dev 将 `/api` 代理到 `http://localhost:8000`；`VITE_API_BASE_URL` 留空即可
+- 本地 dev 将 `/api` 代理到 `http://localhost:3002`；`VITE_API_BASE_URL` 留空即可
 - 登录态：刷新时先 `restoreSession()`，用 `authCheckDone` 避免短暂闪现登录页
 
 ### 管理后台（Vue 3 + Vite）
@@ -419,7 +419,7 @@ print(supervisor.chat("Explain async/await and give a tiny example."))
 2. 后续请求带上同一 `thread_id`，Agent 会记住此前消息
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/unified/stream \
+curl -X POST http://127.0.0.1:3002/api/v1/unified/stream \
   -H "Content-Type: application/json" \
   -d '{"message": "最近很焦虑"}'
 ```

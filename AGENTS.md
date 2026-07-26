@@ -36,28 +36,27 @@ docs/                      # Documentation
 
 ## Build, Test, and Development Commands
 
+
+
+
+
+
+
 ```bash
-# Backend — run development server
-uvicorn main:app --reload --port 8000
+# Development
+uvicorn main:app --reload --port 3002           # Backend dev server
+pip install -r requirements.txt                 # Install deps
+pip install -e .[dev]                           # Install dev deps
+pytest                                          # Run tests
+cd frontends/fe && npm run dev                  # Frontend dev server
+cd frontends/fe && npm run build                # Frontend build
+docker compose up -d                            # Full stack
+docker compose build                            # Build Docker
 
-# Backend — install dependencies
-pip install -r requirements.txt
-pip install -e .[dev]        # includes pytest, httpx
-
-# Backend — run tests
-pytest
-
-# Frontend (fe) — dev server
-cd frontends/fe && npm run dev
-
-# Frontend (fe) — production build
-cd frontends/fe && npm run build
-
-# Docker — full stack (app + nginx)
-docker compose up -d
-
-# Docker — build and tag
-docker compose build
+# Deployment (one command does everything)
+bash script/deploy/deploy.sh                            # Full deploy
+bash script/deploy/deploy.sh v1.2.3                     # With version
+bash script/deploy/deploy.sh --skip-github               # Skip GitHub release
 ```
 
 ## Coding Style & Naming Conventions

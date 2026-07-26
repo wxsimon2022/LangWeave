@@ -30,12 +30,12 @@ COPY langweave/ langweave/
 COPY app/ app/
 COPY main.py pyproject.toml ./
 
-EXPOSE 8000
+EXPOSE 3002
 
 ENV LANGWEAVE_DATABASE_URL=mysql+pymysql://root:password@127.0.0.1:3306/langweave
 ENV LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3002"]
 
 # ---------------------------------------------------------------------------
 # Stage 2: production — nginx + built frontend static files
