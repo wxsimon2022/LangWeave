@@ -77,9 +77,9 @@ REMOTE_ENV_FILE="$REMOTE_APP_DIR/shared/.env"
 REMOTE_VENV_DIR="$REMOTE_SHARED_DIR/.venv"
 REMOTE_PYTHON_BIN="$REMOTE_SHARED_DIR/python-bin"
 
-# 每次部署同步 .env.prod → shared/.env
-if [ -f "$REMOTE_CURRENT_DIR/config/.env.prod" ]; then
-  cp "$REMOTE_CURRENT_DIR/config/.env.prod" "$REMOTE_ENV_FILE"
+# 同步 .env 到 shared 目录并建立链接
+if [ -f "$REMOTE_CURRENT_DIR/.env" ]; then
+  cp "$REMOTE_CURRENT_DIR/.env" "$REMOTE_ENV_FILE"
   ln -sfn "$REMOTE_ENV_FILE" "$REMOTE_CURRENT_DIR/.env"
 fi
 
@@ -109,7 +109,22 @@ fi
 
 echo "  → 启动 Uvicorn"
 pkill -f "\[u\]vicorn main:app" || true
-sleep 1
+  echo "  → 等待端口 8000 释放..."
+  for i in 
+2
+3
+4
+5
+6
+7
+8
+9
+10; do
+    if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
+      break
+    fi
+    sleep 1
+  done
 cd "$REMOTE_CURRENT_DIR"
 touch app.log
 setsid "$REMOTE_VENV_DIR/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &
