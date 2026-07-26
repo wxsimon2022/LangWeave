@@ -106,22 +106,13 @@ fi
 
 echo "  → 重启 Uvicorn"
 pkill -f "\[u\]vicorn main:app" || true
-  echo "  → 等待端口 8000 释放..."
-  for i in 
-2
-3
-4
-5
-6
-7
-8
-9
-10; do
-    if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
-      break
-    fi
-    sleep 1
-  done
+echo "  → 等待端口 8000 释放..."
+for i in $(seq 1 10); do
+  if ! ss -tln "sport = :8000" 2>/dev/null | grep -q .; then
+    break
+  fi
+  sleep 1
+done
 cd "$REMOTE_CURRENT_DIR"
 touch app.log
 setsid "$REMOTE_VENV_DIR/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 > app.log 2>&1 < /dev/null &
