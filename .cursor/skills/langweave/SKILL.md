@@ -16,15 +16,15 @@ description: >-
 | [framework-reference.md](framework-reference.md) | LangWeave 框架 API、Agent 模式、Web 层 |
 | [docker-reference.md](docker-reference.md) | Docker 构建、nginx、env |
 | [../../README.md](../../README.md) | 项目总览、API 表、目录树 |
-| [../../app/core/llm/README.md](../../app/core/llm/README.md) | LLM 工厂 |
+| [../../backend-chat/app/core/llm/README.md](../../backend-chat/app/core/llm/README.md) | LLM 工厂 |
 
 ## 项目要点
 
 - **聊天入口**：`POST /api/v1/unified/stream`（SSE：`intent` / `chunk` / `done` / `error`）
-- **路由**：`app/api/v1/agents_unified.py`，prefix `/api/v1`，路径 `/unified/stream`
+- **路由**：`backend-chat/app/api/v1/agents_unified.py`，prefix `/api/v1`，路径 `/unified/stream`
 - **前端**：SPA 入口 `app.html`；Token 存 `localStorage.langweave_token`；登录态恢复用 `authCheckDone`
-- **部署**：Bash（`script/deploy/`）与 Docker（`docker-compose.yml`）；MySQL、Redis 为远端服务
-- **Session**：`app/infrastructure/cache/session.py`，同步路由使用 `set_active_session_sync`
+- **部署**：Bash（`backend-chat/script/deploy/`）与 Docker（`docker-compose.yml`）；MySQL、Redis 为远端服务
+- **Session**：`backend-chat/app/infrastructure/cache/session.py`，同步路由使用 `set_active_session_sync`
 
 ## 修改检查清单
 

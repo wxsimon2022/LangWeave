@@ -2,6 +2,7 @@
 """Reset or create the admin user password.
 
 Usage:
+    cd backend-chat
     python scripts/reset_admin_password.py            # prompts for password
     python scripts/reset_admin_password.py --pass "newpass"
     python scripts/reset_admin_password.py --user admin --pass "newpass"

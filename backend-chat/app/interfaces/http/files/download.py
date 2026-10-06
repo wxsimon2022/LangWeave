@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+
+from langweave.config import project_root
 
 router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
 # Documents are written to the project's docs/ directory
-DOCS_DIR = Path(__file__).resolve().parents[4] / "docs"  # app/interfaces/http/files/ → project root
+DOCS_DIR = project_root() / "docs"
 
 
 @router.get(

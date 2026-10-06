@@ -23,12 +23,12 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend-chat/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY langweave/ langweave/
-COPY app/ app/
-COPY main.py pyproject.toml ./
+COPY backend-chat/langweave/ langweave/
+COPY backend-chat/app/ app/
+COPY backend-chat/main.py backend-chat/pyproject.toml ./
 
 EXPOSE 30002
 
@@ -45,9 +45,9 @@ FROM nginx:alpine AS production
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 2>/dev/null || true
 
 # Pre-built frontend SPA (built locally by deploy script)
-COPY frontends/fe/dist/ /usr/share/nginx/html/
+COPY frontend-chat/fe/dist/ /usr/share/nginx/html/
 
-COPY script/deploy/nginx.docker.conf /etc/nginx/conf.d/default.conf
+COPY backend-chat/script/deploy/nginx.docker.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

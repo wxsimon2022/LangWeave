@@ -11,6 +11,20 @@ from pydantic import BaseModel, Field
 _DOTENV_LOADED = False
 
 
+def project_root() -> Path:
+    """Locate the backend project root.
+
+    Resolves to the directory that contains the ``app`` package. This works both
+    in the repository layout (``backend-chat/``) and in the flattened deployment
+    layout where ``app/`` and ``langweave/`` sit side by side at the release root.
+    """
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "app").is_dir():
+            return parent
+    return here.parents[-1]
+
+
 def load_dotenv() -> None:
     """Load `.env` from the project root (idempotent)."""
     global _DOTENV_LOADED
@@ -22,8 +36,9 @@ def load_dotenv() -> None:
         _DOTENV_LOADED = True
         return
 
-    root = Path(__file__).resolve().parents[1]
-    for path in (root / ".env", Path.cwd() / ".env"):
+    root = project_root()
+    candidates = (root / ".env", root.parent / ".env", Path.cwd() / ".env")
+    for path in candidates:
         if path.is_file():
             _load(path, override=False)
             break

@@ -9,7 +9,7 @@ __pycache__
 .pytest_cache
 *.egg-info
 dist
-!frontends/fe/dist/
+!frontend-chat/fe/dist/
 build
 
 # Virtual environments
@@ -23,9 +23,9 @@ env
 
 # Node
 node_modules
-frontends/fe/node_modules
-frontends/admin/node_modules
-frontends/desktop/node_modules
+frontend-chat/fe/node_modules
+frontend-chat/admin/node_modules
+frontend-chat/desktop/node_modules
 
 # IDE
 .idea
@@ -38,6 +38,6 @@ frontends/desktop/node_modules
 Thumbs.db
 
 # Build artifacts
-frontends/admin/dist
-script/deploy/build
-frontends/desktop/release
+frontend-chat/admin/dist
+backend-chat/script/deploy/build
+frontend-chat/desktop/release

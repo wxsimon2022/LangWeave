@@ -5,11 +5,11 @@
 3. 上传 nginx 配置到 `root@124.223.72.223:/usr/local/nginx/conf/vhost/`
 4. 证书文件同步到远端发布目录下的 `ssl/`
 
-默认域名配置来自 `script/chat.mybfs.cn_nginx/`。
+默认域名配置来自 `backend-chat/script/deploy/`。
 
 脚本：
 
-- `script/deploy/deploy_all.sh`：唯一部署入口，单脚本完成构建、`rsync` 直传覆盖、远端部署、启动和 nginx reload
+- `backend-chat/script/deploy/deploy.sh`：唯一部署入口，单脚本完成构建、`rsync` 直传覆盖、远端部署、启动和 nginx reload
 
 ## 环境变量
 
@@ -18,12 +18,12 @@
 | 文件 | 用途 | 是否包含在发布包中 |
 |---|---|---|
 | `.env` | 本地开发配置 | ❌ 被 rsync 排除 |
-| `.env.prod` | **生产配置**（项目根目录） | ✅ 发布到 `config/.env.prod` |
+| `.env.prod` | **生产配置**（项目根目录） | ✅ 复制为发布包根目录的 `.env` |
 | `.env.example` | 空模板，供参考 | ✅ 发布包中保留 |
 
 ### 首次部署
 
-服务器上 `/home/biu/chat/shared/.env` 不存在时，脚本会自动从发布包中的 `config/.env.prod` 复制作为远端环境变量。后续部署不会覆盖 shared/.env，因此可以安全地在服务器上手动修改。
+服务器上 `/home/biu/chat/shared/.env` 不存在时，脚本会自动从发布包根目录的 `.env` 复制作为远端环境变量。后续部署不会覆盖 shared/.env，因此可以安全地在服务器上手动修改。
 
 ### 修改生产配置
 
@@ -32,13 +32,13 @@
 ### 推荐部署命令
 
 ```bash
-./script/deploy/deploy_all.sh
+bash backend-chat/script/deploy/deploy.sh
 ```
 
 远端部署行为：
 
-1. `rsync` 直传覆盖到 `/home/biu/chat/current/`
-2. 首次部署时自动从 `config/.env.prod` 创建 `/home/biu/chat/shared/.env`（已存在则不覆盖）
+1. 将 `backend-chat/` 的发布包 `rsync` 直传覆盖到 `/home/biu/chat/current/`（`app/`、`langweave/`、`main.py` 保持扁平布局）
+2. 首次部署时自动从发布包根目录的 `.env` 创建 `/home/biu/chat/shared/.env`（已存在则不覆盖）
 3. 自动创建或复用 `.venv`
 4. 若服务器缺少 `python3.11`，会自动通过 `dnf` 安装
 5. 自动安装依赖

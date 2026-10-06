@@ -2,36 +2,44 @@
 
 ## Project Structure & Module Organization
 
-The project follows a monorepo layout with two main Python packages plus separate frontend applications:
+The repository root contains exactly two directories: `backend-chat/` (Python) and `frontend-chat/` (JavaScript). Everything backend- and deployment-related lives under `backend-chat/`; all JS apps live under `frontend-chat/`. Only shared root files (`Dockerfile`, `docker-compose.yml`, `README.md`, `.env*`) stay at the top level.
 
 ```
-langweave/                 # Core agent framework (LangChain + LangGraph)
-  agent.py                 # Agent orchestration
-  builder.py               # Agent construction
-  config.py                # Configuration loader
-  memory.py                # Conversation memory
-  registry.py              # Tool/provider registry
-  middleware/              # Request lifecycle hooks
-  models/                  # LLM provider wrappers (DeepSeek, OpenAI)
-  orchestration/           # Multi-agent coordination
-  tools/                   # Agent tools (build, deps, handlers, etc.)
-  web/                     # FastAPI routes, middleware, schemas, swagger
-app/                       # FastAPI application layer
-  core/                    # App factory, middleware setup
-  domain/                  # Domain entities
-  infrastructure/          # Storage, external service adapters
-  interfaces/              # API contracts
-  prompts/                 # Prompt templates
-  schemas/                 # Request/response models
-frontends/
+backend-chat/              # Python backend (FastAPI + agent framework)
+  README.md
+  pyproject.toml
+  requirements.txt
+  main.py                  # ASGI entrypoint (uvicorn main:app)
+  langweave/               # Core agent framework (LangChain + LangGraph)
+    agent.py               # Agent orchestration
+    builder.py             # Agent construction
+    config.py              # Configuration loader
+    memory.py              # Conversation memory
+    registry.py            # Tool/provider registry
+    middleware/            # Request lifecycle hooks
+    models/                # LLM provider wrappers (DeepSeek, OpenAI)
+    orchestration/         # Multi-agent coordination
+    tools/                 # Agent tools (build, deps, handlers, etc.)
+    web/                   # FastAPI routes, middleware, schemas, swagger
+  app/                     # FastAPI application layer
+    core/                  # App factory, middleware setup
+    domain/                # Domain entities
+    infrastructure/        # Storage, external service adapters
+    interfaces/            # API contracts
+    prompts/               # Prompt templates
+    schemas/               # Request/response models
+  config/                  # YAML config files (MCP, prompts)
+  sql/                     # SQL migration scripts
+  scripts/                 # Utility scripts (e.g., init_agents.py)
+  docs/                    # Documentation + file-assistant output dir
+  examples/                # Runnable examples
+  script/deploy/           # Deployment pipeline (Docker + nginx + release)
+frontend-chat/             # JavaScript frontends
   fe/                      # Vue 3 + Vite chat SPA
   admin/                   # Admin dashboard
   desktop/                 # Electron desktop client
-config/                    # YAML config files (MCP, prompts)
-sql/                            # SQL migration scripts
-scripts/                   # Utility scripts (e.g., init_agents.py)
-script/deploy/             # Deployment pipeline (Docker + nginx)
-docs/                      # Documentation
+docker-compose.yml         # Full-stack compose definition
+Dockerfile                 # Backend + nginx multi-stage build
 ```
 
 ## Build, Test, and Development Commands
@@ -43,37 +51,38 @@ docs/                      # Documentation
 
 
 ```bash
-# Development
-uvicorn main:app --reload --port 30002           # Backend dev server
-pip install -r requirements.txt                 # Install deps
-pip install -e .[dev]                           # Install dev deps
-pytest                                          # Run tests
-cd frontends/fe && npm run dev                  # Frontend dev server
-cd frontends/fe && npm run build                # Frontend build
+# Development (backend)
+(cd backend-chat && uvicorn main:app --reload --port 30002) # Backend dev server
+(cd backend-chat && pip install -r requirements.txt)        # Install deps
+(cd backend-chat && pip install -e .[dev])                  # Install dev deps
+(cd backend-chat && pytest)                                 # Run tests
+# Development (frontend)
+(cd frontend-chat/fe && npm run dev)                   # Frontend dev server
+(cd frontend-chat/fe && npm run build)                 # Frontend build
 docker compose up -d                            # Full stack
 docker compose build                            # Build Docker
 
 # Deployment (one command does everything)
-bash script/deploy/deploy.sh                            # Full deploy
-bash script/deploy/deploy.sh v1.2.3                     # With version
-bash script/deploy/deploy.sh --skip-github               # Skip GitHub release
+bash backend-chat/script/deploy/deploy.sh                # Full deploy
+bash backend-chat/script/deploy/deploy.sh v1.2.3         # With version
+bash backend-chat/script/deploy/deploy.sh --skip-github  # Skip GitHub release
 ```
 
 ## Coding Style & Naming Conventions
 
 - Indentation: 4 spaces for Python, 2 spaces for Vue/JavaScript.
 - Python follows [PEP 8](https://peps.python.org/pep-0008/). No linter is enforced project-wide; maintain consistency with existing code.
-- Module layout follows a layered architecture within each package: `langweave/` owns framework logic, `app/` owns the FastAPI application wiring.
+- Module layout follows a layered architecture within each package: `backend-chat/langweave/` owns framework logic, `backend-chat/app/` owns the FastAPI application wiring.
 - Naming patterns:
   - `snake_case` for Python modules, variables, and functions.
   - `PascalCase` for classes and Pydantic models.
   - Enum-style prefixes for related modules (e.g., `tree_docs.py`, `swagger2.py`).
-- Environment variables are loaded from `.env` via `python-dotenv` at startup (see `langweave/config.py`). Sensible defaults are defined in `.env.example`.
+- Environment variables are loaded from `.env` via `python-dotenv` at startup (see `backend-chat/langweave/config.py`). Sensible defaults are defined in `.env.example` at the repo root.
 
 ## Testing Guidelines
 
-- Testing is optional but recommended. The project uses **pytest** with configuration in `pyproject.toml`.
-- Tests live in a top-level `tests/` directory (create if missing).
+- Testing is optional but recommended. The project uses **pytest** with configuration in `backend-chat/pyproject.toml`.
+- Tests live in `backend-chat/tests/` (create if missing).
 - Test files follow the pattern `test_<module>.py`.
 - Run all tests with `pytest`. Add `-v` for verbose output.
 - Coverage targets are not currently enforced.
@@ -106,9 +115,9 @@ PR descriptions should include:
 
 LangWeave is a **LangChain agents framework** with a FastAPI HTTP front. Requests flow through:
 
-1. **FastAPI routes** (`langweave/web/routes.py`) → auth middleware → agent dispatch.
-2. **Agent orchestration** (`langweave/agent.py`, `langweave/builder.py`) constructs a LangGraph state graph for each conversation.
-3. **Conversation memory** (`langweave/memory.py`) persists thread history to MySQL via `LangGraphCheckpointMySQL` (AIOMySQLSaver).
+1. **FastAPI routes** (`backend-chat/langweave/web/routes.py`) → auth middleware → agent dispatch.
+2. **Agent orchestration** (`backend-chat/langweave/agent.py`, `backend-chat/langweave/builder.py`) constructs a LangGraph state graph for each conversation.
+3. **Conversation memory** (`backend-chat/langweave/memory.py`) persists thread history to MySQL via `LangGraphCheckpointMySQL` (AIOMySQLSaver).
 4. **LLM providers** are selected at startup via `LANGWEAVE_MODEL` (e.g., `deepseek:deepseek-v4-pro`). DeepSeek is the default; OpenAI is optional.
 
 External dependencies: **MySQL** (required, used for checkpoints and agent data), **Redis** (optional, for future caching/sessions).
@@ -118,4 +127,4 @@ External dependencies: **MySQL** (required, used for checkpoints and agent data)
 - Docker multi-stage build: backend stage (Python 3.11-slim) + production stage (nginx with pre-built frontend).
 - The frontend SPA is built locally and copied into the nginx stage — it is **not** built inside Docker.
 - Set required environment variables in `.env` (see `.env.example`). The app will fail to start without a valid `LANGWEAVE_DATABASE_URL`.
-- The production deployment entry point is `script/deploy/`. Refer to the scripts there for the full pipeline.
+- The production deployment entry point is `backend-chat/script/deploy/`. Refer to the scripts there for the full pipeline.

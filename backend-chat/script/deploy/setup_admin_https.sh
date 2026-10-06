@@ -6,16 +6,16 @@ set -euo pipefail
 #  基于 acme.sh (Let's Encrypt) + nginx
 # ============================================
 # 用法:
-#   bash script/deploy/setup_admin_https.sh
+#   bash backend-chat/script/deploy/setup_admin_https.sh
 #
 # 前置条件:
 #   - 域名 admin.meet.mybfs.cn DNS 已指向本机
 #   - nginx 已安装，管理后台前端文件就绪
 # ============================================
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SSL_DIR="/home/biu/chat/current/ssl"
-NGINX_CONF="$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf"
+NGINX_CONF="$ROOT_DIR/backend-chat/script/deploy/nginx.admin.meet.mybfs.cn.conf"
 NGINX_SBIN="nginx"
 DOMAIN="admin.meet.mybfs.cn"
 EMAIL="admin@mybfs.cn"

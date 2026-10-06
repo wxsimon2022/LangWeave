@@ -5,7 +5,7 @@
 # Uses Chinese npm mirrors for faster downloads.
 #
 # Usage:
-#   bash frontends/desktop/build_local.sh [--upload]
+#   bash frontend-chat/desktop/build_local.sh [--upload]
 #
 # Options:
 #   --upload    Also publish to GitHub Release after building
@@ -44,7 +44,7 @@ if [[ "${1:-}" == "--upload" ]]; then
   echo ""
   echo "Publishing to GitHub Release..."
   ROOT_DIR="$(git rev-parse --show-toplevel)"
-  bash "$ROOT_DIR/script/deploy/publish_release.sh"
+  bash "$ROOT_DIR/backend-chat/script/deploy/publish_release.sh"
 fi
 
 echo ""

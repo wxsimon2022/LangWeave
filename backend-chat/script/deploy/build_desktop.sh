@@ -6,11 +6,11 @@ set -euo pipefail
 # into the proper release directory for uploading and serving.
 #
 # Usage:
-#   bash script/deploy/build_desktop.sh
+#   bash backend-chat/script/deploy/build_desktop.sh
 #
 # Output:
-#   - Build artifacts in frontends/desktop/release/
-#   - Copies .dmg / .exe / .AppImage to script/deploy/build/release/frontend/desktop/
+#   - Build artifacts in frontend-chat/desktop/release/
+#   - Copies .dmg / .exe / .AppImage to backend-chat/script/deploy/build/release/frontend/desktop/
 #
 # Environment:
 #   CI_SKIP_DESKTOP  — set to any value to skip the build
@@ -18,9 +18,9 @@ set -euo pipefail
 #                      reads from ROOT_DIR's DEPLOY_VERSION file (written by deploy_all.sh)
 #                      or falls back to package.json version
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DESKTOP_DIR="$ROOT_DIR/frontends/desktop"
-BUILD_DIR="$ROOT_DIR/script/deploy/build"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+DESKTOP_DIR="$ROOT_DIR/frontend-chat/desktop"
+BUILD_DIR="$ROOT_DIR/backend-chat/script/deploy/build"
 RELEASE_DIR="$BUILD_DIR/release"
 
 if [[ -n "${CI_SKIP_DESKTOP:-}" ]]; then

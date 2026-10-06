@@ -12,8 +12,10 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
+from langweave.config import project_root
+
 # Restrict file operations to the project root for safety
-PROJECT_ROOT = Path(__file__).resolve().parents[3]  # app/domain/tools/ → project root
+PROJECT_ROOT = project_root()
 
 
 def _safe_path(path: str) -> Path:

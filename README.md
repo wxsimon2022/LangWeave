@@ -10,7 +10,7 @@
 
 > **命名**：Weave = 编织 —— 将模型、工具、中间件与多个 Agent 编织成可运行的图。
 
-📖 **开发指南**：[.cursor/skills/langweave/开发指南.md](.cursor/skills/langweave/开发指南.md) · [docs/README.md](docs/README.md)
+📖 **开发指南**：[.cursor/skills/langweave/开发指南.md](.cursor/skills/langweave/开发指南.md) · [backend-chat/docs/README.md](backend-chat/docs/README.md)
 
 ---
 
@@ -73,9 +73,9 @@ IntentService.recognize()             ← intent Agent 分类意图
 ## 快速开始（DeepSeek）
 
 ```bash
+cp .env.example .env               # 仓库根目录，编辑并填入 DEEPSEEK_API_KEY（启动时自动加载）
+cd backend-chat
 pip install -r requirements.txt    # langchain, langgraph, MySQL checkpointer, etc.
-cp .env.example .env
-# 编辑 .env，填入 DEEPSEEK_API_KEY（启动时会自动加载，无需手动 export）
 ```
 
 `.env` 示例：
@@ -126,6 +126,7 @@ export LANGWEAVE_MODEL=openai:gpt-4o-mini
 ### 开发模式
 
 ```bash
+cd backend-chat
 pip install -r requirements.txt
 uvicorn main:app --reload --port 30002
 ```
@@ -265,7 +266,7 @@ curl -X POST http://127.0.0.1:30002/api/v1/agents/assistant/chat \
 ### 主聊天 SPA（Vue 3 + Vite）
 
 ```bash
-cd frontends/fe
+cd frontend-chat/fe
 npm install
 npm run dev
 ```
@@ -278,7 +279,7 @@ npm run dev
 ### 管理后台（Vue 3 + Vite）
 
 ```bash
-cd frontends/admin
+cd frontend-chat/admin
 npm install
 npm run dev
 ```
@@ -289,7 +290,7 @@ npm run dev
 ### 桌面客户端（Electron）
 
 ```bash
-cd frontends/desktop
+cd frontend-chat/desktop
 npm install
 npm run build
 ```
@@ -297,7 +298,7 @@ npm run build
 打包脚本：
 
 ```bash
-./script/deploy/build_desktop.sh
+bash backend-chat/script/deploy/build_desktop.sh
 ```
 
 ---
@@ -307,13 +308,12 @@ npm run build
 ### Bash 脚本部署（生产）
 
 ```bash
-./script/deploy/deploy_all.sh      # 全量：前端构建 → rsync → 依赖 → 重启 → nginx reload
-./script/deploy/deploy_backend.sh  # 仅后端
-./script/deploy/build_desktop.sh   # Electron 桌面端（含 electron-updater 在线更新）
+bash backend-chat/script/deploy/deploy.sh         # 全量：前端构建 → rsync → 依赖 → 重启 → nginx reload
+bash backend-chat/script/deploy/build_desktop.sh  # Electron 桌面端（含 electron-updater 在线更新）
 ```
 
-- Nginx 配置：`script/deploy/nginx.chat.mybfs.cn.conf`
-- 环境变量与远端目录：见 [script/deploy/README.md](script/deploy/README.md)
+- Nginx 配置：`backend-chat/script/deploy/nginx.chat.mybfs.cn.conf`
+- 环境变量与远端目录：见 [backend-chat/script/deploy/README.md](backend-chat/script/deploy/README.md)
 
 ### Docker 部署
 
@@ -325,7 +325,7 @@ docker compose up -d --build
 - 服务：`app` + `nginx`
 - 访问：`http://localhost:8088`
 - MySQL、Redis：远端，通过 `.env` 配置
-- 配置：`Dockerfile`、`docker-compose.yml`、`script/deploy/nginx.docker.conf`
+- 配置：`Dockerfile`、`docker-compose.yml`、`backend-chat/script/deploy/nginx.docker.conf`
 - 文档：[开发指南](.cursor/skills/langweave/开发指南.md) · [docker-reference](.cursor/skills/langweave/docker-reference.md)
 
 ---
@@ -355,35 +355,41 @@ docker compose up -d --build
 ## 项目结构
 
 ```
-langweave/                         # 框架层
-├── agent.py / builder.py          Agent 包装器与流式构建器
-├── config.py / registry.py        配置加载与 Agent 注册表
-├── memory.py                      多轮记忆（MySQL checkpointer）
-├── web/                           FastAPI 工厂 + 路由 + Swagger
-└── tools/                         内置工具（calculator）
+backend-chat/                      # 后端（Python / FastAPI）
+├── main.py                        ASGI 入口（uvicorn main:app）
+├── pyproject.toml                 依赖与 pytest 配置
+├── langweave/                     框架层
+│   ├── agent.py / builder.py      Agent 包装器与流式构建器
+│   ├── config.py / registry.py    配置加载与 Agent 注册表
+│   ├── memory.py                  多轮记忆（MySQL checkpointer）
+│   ├── web/                       FastAPI 工厂 + 路由 + Swagger
+│   └── tools/                     内置工具（calculator）
+├── app/                           业务层
+│   ├── core/                      LLM、MCP、RAG、监控等基础能力
+│   ├── domain/                    领域层
+│   │   ├── agents/                Agent 实现（intent / emotional / assistant / fallback）
+│   │   ├── tools/                 领域工具（订单查询等）
+│   │   └── registry.py            注册入口
+│   ├── application/               应用服务层
+│   │   ├── services/              ChatService（入口路由）、Auth、Session、Intent
+│   │   └── security.py            JWT / HMAC
+│   ├── infrastructure/            基础设施层
+│   │   ├── cache/                 Redis（心跳、DAU、单设备登录、令牌黑名单）
+│   │   └── persistence/           MySQL ORM + 连接管理
+│   ├── interfaces/http/           FastAPI 路由（auth / chat / admin / heartbeat）
+│   ├── middleware/                限流中间件（RateLimitMiddleware）
+│   ├── schemas/                   Pydantic 请求/响应模型
+│   ├── prompts/                   提示词模板
+│   └── bootstrap.py               应用组合根（DB 初始化 → Agent 注册 → 启动）
+├── config/                        配置文件（MCP、Prompts）
+├── sql/                           数据库迁移 SQL
+├── scripts/                       工具脚本（init_agents / reset_admin_password）
+└── docs/                          项目文档 + 文件助手生成目录
 
-app/                                # 业务层
-├── core/                           LLM、MCP、RAG、监控等基础能力
-├── domain/                         领域层
-│   ├── agents/                     Agent 实现（intent / emotional / assistant / fallback）
-│   ├── tools/                      领域工具（订单查询等）
-│   └── registry.py                 注册入口
-├── application/                    应用服务层
-│   ├── services/                   ChatService（入口路由）、Auth、Session、Intent
-│   └── security.py                 JWT / HMAC
-├── infrastructure/                 基础设施层
-│   ├── cache/                      Redis（心跳、DAU、单设备登录、令牌黑名单）
-│   └── persistence/                MySQL ORM + 连接管理
-├── interfaces/http/                FastAPI 路由（auth / chat / admin / heartbeat）
-├── middleware/                      限流中间件（RateLimitMiddleware）
-├── schemas/                        Pydantic 请求/响应模型
-├── prompts/                        提示词模板
-└── bootstrap.py                    应用组合根（DB 初始化 → Agent 注册 → 启动）
-
-frontends/                          前端项目（Vue 3 SPA + Electron）
-sql/                             数据库迁移 SQL
-scripts/                            部署脚本
-config/                             配置文件（MCP、Prompts）
+frontend-chat/                     # 前端（Vue 3 SPA + Electron）
+├── fe/                            主聊天 SPA
+├── admin/                         管理后台
+└── desktop/                       Electron 桌面客户端
 ```
 
 ---
@@ -413,7 +419,7 @@ print(supervisor.chat("Explain async/await and give a tiny example."))
 
 `assistant`、`emotional` 已启用 LangGraph checkpointer（**MySQL 持久化**，跨重启保留）。
 
-多轮记忆依赖 `LANGWEAVE_DATABASE_URL` 指向 MySQL 数据库。首次使用时，`langweave/memory.py` 会自动创建 `checkpoints`、`checkpoint_blobs`、`checkpoint_writes` 三张表；如果表结构来自 `langgraph-checkpoint-mysql` 旧版本，迁移逻辑会自动补充缺失的 `checkpoint_ns` 列并修复排序规则。
+多轮记忆依赖 `LANGWEAVE_DATABASE_URL` 指向 MySQL 数据库。首次使用时，`backend-chat/langweave/memory.py` 会自动创建 `checkpoints`、`checkpoint_blobs`、`checkpoint_writes` 三张表；如果表结构来自 `langgraph-checkpoint-mysql` 旧版本，迁移逻辑会自动补充缺失的 `checkpoint_ns` 列并修复排序规则。
 
 1. 首次对话可不传 `thread_id`，响应会返回 `thread_id`
 2. 后续请求带上同一 `thread_id`，Agent 会记住此前消息

@@ -6,16 +6,16 @@ set -euo pipefail
 #  构建后端 + 前端 → 打包 → 推送远程 → 更新 nginx → 发版
 # ============================================================
 # 用法:
-#   bash script/deploy/deploy.sh                         # 完整发布
-#   bash script/deploy/deploy.sh v1.2.3                   # 指定版本号
-#   bash script/deploy/deploy.sh --skip-frontend          # 只构建后端
-#   bash script/deploy/deploy.sh --skip-desktop           # 跳过桌面端
-#   bash script/deploy/deploy.sh --skip-github            # 跳过 GitHub Release
-#   bash script/deploy/deploy.sh --skip-all-build         # 仅推送已有包
+#   bash backend-chat/script/deploy/deploy.sh                         # 完整发布
+#   bash backend-chat/script/deploy/deploy.sh v1.2.3                   # 指定版本号
+#   bash backend-chat/script/deploy/deploy.sh --skip-frontend          # 只构建后端
+#   bash backend-chat/script/deploy/deploy.sh --skip-desktop           # 跳过桌面端
+#   bash backend-chat/script/deploy/deploy.sh --skip-github            # 跳过 GitHub Release
+#   bash backend-chat/script/deploy/deploy.sh --skip-all-build         # 仅推送已有包
 # ============================================================
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BUILD_DIR="$ROOT_DIR/script/deploy/build"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+BUILD_DIR="$ROOT_DIR/backend-chat/script/deploy/build"
 RELEASE_DIR="$BUILD_DIR/release"
 
 REMOTE_HOST="root@124.223.72.223"
@@ -63,12 +63,15 @@ rm -rf "$BUILD_DIR"
     --exclude ".pytest_cache" \
     --exclude ".venv" \
     --exclude "__pycache__" \
-    --exclude "frontends" \
     --exclude "script/deploy/build" \
+    --exclude "script" \
     --exclude ".env" \
     --exclude ".env.prod" \
-    app langweave main.py pyproject.toml requirements.txt README.md .env.example \
+    backend-chat/ \
     "$RELEASE_DIR/"
+
+  # Keep the project-level README and env template in the release bundle.
+  cp "$ROOT_DIR/README.md" "$ROOT_DIR/.env.example" "$RELEASE_DIR/"
 
   if [ -f "$ROOT_DIR/.env.prod" ]; then
     cp "$ROOT_DIR/.env.prod" "$RELEASE_DIR/.env"
@@ -87,7 +90,7 @@ rm -rf "$BUILD_DIR"
 
     # 主前端 (fe)
     echo "  → 主前端 (chat.mybfs.cn)..."
-    cd "$ROOT_DIR/frontends/fe"
+    cd "$ROOT_DIR/frontend-chat/fe"
     if [ ! -d "node_modules" ]; then
       npm install
     fi
@@ -98,7 +101,7 @@ rm -rf "$BUILD_DIR"
 
     # 管理后台 (admin)
     echo "  → 管理后台 (admin.meet.mybfs.cn)..."
-    cd "$ROOT_DIR/frontends/admin"
+    cd "$ROOT_DIR/frontend-chat/admin"
     if [ ! -d "node_modules" ]; then
       npm install
     fi
@@ -118,9 +121,9 @@ rm -rf "$BUILD_DIR"
   echo "[deploy] [3/6] 打包..."
 
   # 桌面端
-  if [ "$SKIP_DESKTOP" = false ] && [ -f "$ROOT_DIR/script/deploy/build_desktop.sh" ]; then
+  if [ "$SKIP_DESKTOP" = false ] && [ -f "$ROOT_DIR/backend-chat/script/deploy/build_desktop.sh" ]; then
     echo "  → 桌面端..."
-    bash "$ROOT_DIR/script/deploy/build_desktop.sh" 2>&1 || echo "    ⚠ 桌面端构建失败 (继续)..."
+    bash "$ROOT_DIR/backend-chat/script/deploy/build_desktop.sh" 2>&1 || echo "    ⚠ 桌面端构建失败 (继续)..."
   fi
 
   echo "  ✅ 打包完成"
@@ -142,9 +145,9 @@ echo "  ✅ 发布包已推送"
 # ══════════════════════════════════════════════════
 echo ""
 echo "[deploy] [5/6] Rsync Nginx 配置..."
-rsync -az "$ROOT_DIR/script/deploy/nginx.chat.mybfs.cn.conf" \
+rsync -az "$ROOT_DIR/backend-chat/script/deploy/nginx.chat.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/chat.mybfs.cn.conf"
-rsync -az "$ROOT_DIR/script/deploy/nginx.admin.meet.mybfs.cn.conf" \
+rsync -az "$ROOT_DIR/backend-chat/script/deploy/nginx.admin.meet.mybfs.cn.conf" \
   "$REMOTE_HOST:$REMOTE_NGINX_DIR/admin.meet.mybfs.cn.conf"
 echo "  ✅ Nginx 配置已推送"
 
@@ -257,7 +260,7 @@ if [ "$SKIP_GITHUB" = false ] && command -v gh &>/dev/null; then
   echo "  → 创建 GitHub Release $TAG..."
 
   ASSETS=()
-  DESKTOP_RELEASE="$ROOT_DIR/frontends/desktop/release"
+  DESKTOP_RELEASE="$ROOT_DIR/frontend-chat/desktop/release"
   if [ -d "$DESKTOP_RELEASE" ]; then
     while IFS= read -r -d '' f; do
       ASSETS+=("$f")

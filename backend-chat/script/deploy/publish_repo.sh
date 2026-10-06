@@ -6,7 +6,7 @@ set -euo pipefail
 # ============================================
 # 用法:
 #   gh auth login                     # 首次：浏览器登录 GitHub
-#   bash script/deploy/publish_repo.sh
+#   bash backend-chat/script/deploy/publish_repo.sh
 #
 # 该脚本会:
 #   1. 更新仓库描述 (description)
@@ -17,7 +17,7 @@ set -euo pipefail
 # 前置条件: gh CLI 已认证 (gh auth status)
 # ============================================
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
 REPO="wxsimon2022/LangWeave"
@@ -102,10 +102,10 @@ echo ""
 
 # ---- Auto commit ----
 echo "自动提交本地变更..."
-if git diff --quiet -- CITATION.cff .github/workflows/repo-meta.yml script/deploy/publish_repo.sh 2>/dev/null; then
+if git diff --quiet -- CITATION.cff .github/workflows/repo-meta.yml backend-chat/script/deploy/publish_repo.sh 2>/dev/null; then
   echo "  无变更，跳过"
 else
-  git add CITATION.cff .github/workflows/repo-meta.yml script/deploy/publish_repo.sh 2>/dev/null
+  git add CITATION.cff .github/workflows/repo-meta.yml backend-chat/script/deploy/publish_repo.sh 2>/dev/null
   git commit -m "chore: add repo SEO metadata for discoverability" 2>/dev/null || true
   echo "  已提交。请手动推送: git push"
 fi

@@ -32,7 +32,7 @@ LANGWEAVE_CORS_ORIGINS=http://localhost:8088,https://chat.mybfs.cn
 
 | Stage | target | 产出 |
 |-------|--------|------|
-| frontend-builder | — | `frontends/fe/dist/` |
+| frontend-builder | — | `frontend-chat/fe/dist/` |
 | backend | `backend` | Python + uvicorn |
 | production | `production` | nginx + 静态文件 |
 

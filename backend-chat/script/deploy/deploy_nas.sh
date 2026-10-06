@@ -15,31 +15,31 @@ command -v sshpass &>/dev/null || fail "sshpass required."
 # ── Step 1: build frontend ───────────────────────────────────────────────────
 info "1/7  Building frontend SPA…"
 echo "  cwd: $(pwd)"
-mkdir -p frontends/fe/dist
-if [ -f frontends/fe/package.json ]; then
-  cd frontends/fe
+mkdir -p frontend-chat/fe/dist
+if [ -f frontend-chat/fe/package.json ]; then
+  cd frontend-chat/fe
   if [ ! -d node_modules ]; then npm ci 2>&1 || true; fi
   npm run build 2>&1 || true
   cd "$(git rev-parse --show-toplevel)"
 fi
 # Recreate dist if missing (npm build may delete + fail)
-if [ ! -f frontends/fe/dist/index.html ]; then
-  mkdir -p frontends/fe/dist
-  echo '<!DOCTYPE html><title>LangWeave</title><body><h1>LangWeave</h1></body>' > frontends/fe/dist/index.html
+if [ ! -f frontend-chat/fe/dist/index.html ]; then
+  mkdir -p frontend-chat/fe/dist
+  echo '<!DOCTYPE html><title>LangWeave</title><body><h1>LangWeave</h1></body>' > frontend-chat/fe/dist/index.html
 fi
-echo "  dist files: $(find frontends/fe/dist -type f | wc -l)"
+echo "  dist files: $(find frontend-chat/fe/dist -type f | wc -l)"
 ok "Frontend ready"
 
 # ── Step 2: build Docker image ──────────────────────────────────────────────
 info "2/7  Building Docker image…"
-echo "  dist files: $(find frontends/fe/dist -type f 2>/dev/null | wc -l)"
-if [ ! -d frontends/fe/dist ] || [ -z "$(ls -A frontends/fe/dist 2>/dev/null)" ]; then
-  mkdir -p frontends/fe/dist
-  echo "<html><body><h1>LangWeave</h1></body></html>" > frontends/fe/dist/index.html
+echo "  dist files: $(find frontend-chat/fe/dist -type f 2>/dev/null | wc -l)"
+if [ ! -d frontend-chat/fe/dist ] || [ -z "$(ls -A frontend-chat/fe/dist 2>/dev/null)" ]; then
+  mkdir -p frontend-chat/fe/dist
+  echo "<html><body><h1>LangWeave</h1></body></html>" > frontend-chat/fe/dist/index.html
   echo "  created placeholder dist"
 fi
 echo "  build pwd: $(pwd)"
-echo "  dist exists: $(ls -la frontends/fe/dist/index.html 2>&1)"
+echo "  dist exists: $(ls -la frontend-chat/fe/dist/index.html 2>&1)"
 docker compose build --no-cache 2>&1 || fail "Local docker build failed."
 ok "Image built"
 
@@ -61,8 +61,8 @@ export RSYNC_RSH="sshpass -p '${NAS_PASS}' ssh ${SSH_OPTS}"
 rsync -avz --delete --progress \
   --exclude='.venv/' --exclude='.git/' --exclude='__pycache__/' \
   --exclude='.pytest_cache/' --exclude='.cursor/' --exclude='.idea/' \
-  --exclude='node_modules/' --exclude='frontends/*/node_modules/' \
-  --exclude='frontends/desktop/' --exclude='docs/' --exclude='examples/' \
+  --exclude='node_modules/' --exclude='frontend-chat/*/node_modules/' \
+  --exclude='frontend-chat/desktop/' --exclude='backend-chat/docs/' --exclude='backend-chat/examples/' \
   --exclude='.env' --exclude='*.tar' \
   ./ "${NAS_USER}@${NAS_HOST}:${NAS_DIR}/" \
   || fail "rsync failed."

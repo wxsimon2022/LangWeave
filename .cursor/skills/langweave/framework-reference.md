@@ -7,11 +7,11 @@
 ## 架构总览
 
 ```
-langweave/              ← 框架核心
+backend-chat/langweave/ ← 框架核心
 ├── agent.py · builder.py · registry.py · config.py · memory.py
 ├── models/ · middleware/ · tools/ · orchestration/ · web/
 
-app/                    ← 业务应用
+backend-chat/app/       ← 业务应用
 ├── agents/             ← Agent 实现
 ├── api/v1/             ← unified、conversations
 ├── application/services/  ← auth、chat、intent
@@ -52,7 +52,7 @@ async for chunk in agent.astream("你好"):
 
 ### AgentRegistry · AgentSettings · Memory · Tools
 
-见 [README.md](../../README.md) 框架章节；LLM 配置见 [app/core/llm/README.md](../../app/core/llm/README.md)。
+见 [README.md](../../README.md) 框架章节；LLM 配置见 [backend-chat/app/core/llm/README.md](../../backend-chat/app/core/llm/README.md)。
 
 ---
 
@@ -67,10 +67,10 @@ POST /api/v1/unified/stream
 
 | 文件 | 职责 |
 |------|------|
-| `app/api/v1/agents_unified.py` | HTTP 入口，prefix `/api/v1` |
-| `app/application/services/intent.py` | 意图识别 |
-| `app/application/services/chat.py` | 路由与流式输出 |
-| `app/schemas/intent.py` | `UserIntent` 结构化输出 |
+| `backend-chat/app/api/v1/agents_unified.py` | HTTP 入口，prefix `/api/v1` |
+| `backend-chat/app/application/services/intent.py` | 意图识别 |
+| `backend-chat/app/application/services/chat.py` | 路由与流式输出 |
+| `backend-chat/app/schemas/intent.py` | `UserIntent` 结构化输出 |
 
 同对话首次消息做意图分类；`agent_name` 持久化后后续消息直达对应 Agent。
 
