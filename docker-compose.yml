@@ -7,18 +7,18 @@
 #
 # Notes:
 #   - MySQL and Redis are expected to be external services.
-#     Set LANGWEAVE_DATABASE_URL and LANGWEAVE_REDIS_URL in .env or here.
+#     Set LANGWEAVE_DATABASE_URL and LANGWEAVE_REDIS_URL in backend-chat/.env or here.
 #   - On the Docker host, ensure the app container can reach your MySQL/Redis
 #     instances (e.g. host.docker.internal on macOS/Windows, or an internal
 #     network address).
 #
 # Quick start:
-#   cp .env.example .env          # edit with your secrets
-#   docker compose up -d          # start app + nginx
-#   http://localhost:8088         # chat SPA at /app.html
-#   docker compose down           # stop all services
+#   cp backend-chat/.env.example backend-chat/.env   # edit with your secrets
+#   docker compose --env-file backend-chat/.env up -d --build   # start app + nginx
+#   http://localhost:8088                            # chat SPA at /app.html
+#   docker compose --env-file backend-chat/.env down            # stop all services
 #
-# Required environment variables (.env):
+# Required environment variables (backend-chat/.env):
 #   DEEPSEEK_API_KEY=sk-...
 #   LANGWEAVE_JWT_SECRET=change-me
 #   LANGWEAVE_DATABASE_URL=mysql+pymysql://user:pass@host:3306/langweave

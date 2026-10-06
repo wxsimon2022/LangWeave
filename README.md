@@ -73,12 +73,12 @@ IntentService.recognize()             ← intent Agent 分类意图
 ## 快速开始（DeepSeek）
 
 ```bash
-cp .env.example .env               # 仓库根目录，编辑并填入 DEEPSEEK_API_KEY（启动时自动加载）
+cp backend-chat/.env.example backend-chat/.env   # 编辑并填入 DEEPSEEK_API_KEY（启动时自动加载）
 cd backend-chat
 pip install -r requirements.txt    # langchain, langgraph, MySQL checkpointer, etc.
 ```
 
-`.env` 示例：
+`backend-chat/.env` 示例：
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key
@@ -131,7 +131,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 30002
 ```
 
-启动前需配置 `.env`，完整示例见 `.env.example`：
+启动前需配置 `backend-chat/.env`，完整示例见 `backend-chat/.env.example`：
 
 ```env
 # 必填
@@ -148,8 +148,8 @@ LANGWEAVE_REDIS_URL=redis://127.0.0.1:6379/0
 ### Docker 一键启动
 
 ```bash
-cp .env.example .env          # 填入 API Key、MySQL/Redis 连接
-docker compose up -d --build  # app + nginx
+cp backend-chat/.env.example backend-chat/.env          # 填入 API Key、MySQL/Redis 连接
+docker compose --env-file backend-chat/.env up -d --build  # app + nginx
 ```
 
 访问 `http://localhost:8088`。详细配置见 [docker-reference](.cursor/skills/langweave/docker-reference.md)。
@@ -318,13 +318,13 @@ bash backend-chat/script/deploy/build_desktop.sh  # Electron 桌面端（含 ele
 ### Docker 部署
 
 ```bash
-cp .env.example .env   # 填入 API Key、JWT、远端 MySQL/Redis 地址
-docker compose up -d --build
+cp backend-chat/.env.example backend-chat/.env   # 填入 API Key、JWT、远端 MySQL/Redis 地址
+docker compose --env-file backend-chat/.env up -d --build
 ```
 
 - 服务：`app` + `nginx`
 - 访问：`http://localhost:8088`
-- MySQL、Redis：远端，通过 `.env` 配置
+- MySQL、Redis：远端，通过 `backend-chat/.env` 配置
 - 配置：`Dockerfile`、`docker-compose.yml`、`backend-chat/script/deploy/nginx.docker.conf`
 - 文档：[开发指南](.cursor/skills/langweave/开发指南.md) · [docker-reference](.cursor/skills/langweave/docker-reference.md)
 

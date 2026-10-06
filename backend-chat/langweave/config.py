@@ -26,7 +26,12 @@ def project_root() -> Path:
 
 
 def load_dotenv() -> None:
-    """Load `.env` from the project root (idempotent)."""
+    """Load `.env` from the backend project root (idempotent).
+
+    The backend project root is ``backend-chat/`` in the repository layout and
+    the release root after deployment. A parent-directory fallback is kept so a
+    legacy repository-root ``.env`` still works.
+    """
     global _DOTENV_LOADED
     if _DOTENV_LOADED:
         return

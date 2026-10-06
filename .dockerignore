@@ -20,6 +20,8 @@ env
 # Environment files
 .env
 .env.prod
+backend-chat/.env
+backend-chat/.env.prod
 
 # Node
 node_modules

@@ -9,7 +9,7 @@ ok()   { printf "\033[1;32m  ✓\033[0m %s\n" "$*"; }
 fail() { printf "\033[1;31m  ✗\033[0m %s\n" "$*" >&2; exit 1; }
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo '.')"
-[ -f .env ] || fail ".env not found."
+[ -f backend-chat/.env ] || fail "backend-chat/.env not found."
 command -v sshpass &>/dev/null || fail "sshpass required."
 
 # ── Step 1: build frontend ───────────────────────────────────────────────────

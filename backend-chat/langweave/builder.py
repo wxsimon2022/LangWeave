@@ -150,7 +150,7 @@ class AgentBuilder:
                 else:
                     msg = (
                         "DEEPSEEK_API_KEY is not set. "
-                        "Add it to .env in the project root or export DEEPSEEK_API_KEY=sk-..."
+                        "Add it to backend-chat/.env or export DEEPSEEK_API_KEY=sk-..."
                     )
                     raise ValueError(msg)
             return init_chat_model(self._model, **kwargs)

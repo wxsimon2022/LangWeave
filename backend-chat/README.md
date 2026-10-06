@@ -8,7 +8,7 @@ FastAPI application layer (`app/`) plus the LangChain/LangGraph agent framework
 ```bash
 cd backend-chat
 pip install -r requirements.txt
-cp ../.env.example ../.env      # then fill in the required values
+cp .env.example .env            # then fill in the required values
 uvicorn main:app --reload --port 30002
 ```
 

@@ -71,10 +71,10 @@ rm -rf "$BUILD_DIR"
     "$RELEASE_DIR/"
 
   # Keep the project-level README and env template in the release bundle.
-  cp "$ROOT_DIR/README.md" "$ROOT_DIR/.env.example" "$RELEASE_DIR/"
+  cp "$ROOT_DIR/README.md" "$ROOT_DIR/backend-chat/.env.example" "$RELEASE_DIR/"
 
-  if [ -f "$ROOT_DIR/.env.prod" ]; then
-    cp "$ROOT_DIR/.env.prod" "$RELEASE_DIR/.env"
+  if [ -f "$ROOT_DIR/backend-chat/.env.prod" ]; then
+    cp "$ROOT_DIR/backend-chat/.env.prod" "$RELEASE_DIR/.env"
     echo "  → 已复制 .env.prod → .env"
   else
     echo "  → 警告: 未找到 .env.prod，跳过"
