@@ -13,7 +13,7 @@ docker exec -it langweave-app sh
 curl http://localhost:8088/app.html
 ```
 
-## .env 示例
+## backend-chat/.env 示例
 
 ```env
 DEEPSEEK_API_KEY=sk-...
@@ -66,7 +66,7 @@ app → 远端 MySQL、远端 Redis
 |----|------|--------|
 | Nginx | `nginx.chat.mybfs.cn.conf` | `nginx.docker.conf` |
 | 静态文件 | rsync 到远端 | 打进 nginx 镜像 |
-| MySQL/Redis | 远端 | 远端（`.env` 配置） |
+| MySQL/Redis | 远端 | 远端（`backend-chat/.env` 配置） |
 | 后端 | uvicorn 进程 | `app` 容器 |
 
 ## 配置要点

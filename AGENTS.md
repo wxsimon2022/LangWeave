@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-The repository root contains exactly two directories: `backend-chat/` (Python) and `frontend-chat/` (JavaScript). Everything backend- and deployment-related lives under `backend-chat/`; all JS apps live under `frontend-chat/`. Only shared root files (`Dockerfile`, `docker-compose.yml`, `README.md`, `.env*`) stay at the top level.
+The repository root contains exactly two directories: `backend-chat/` (Python) and `frontend-chat/` (JavaScript). Everything backend- and deployment-related lives under `backend-chat/`; all JS apps live under `frontend-chat/`. Only shared root files (`Dockerfile`, `docker-compose.yml`, `README.md`) stay at the top level; environment files (`.env*`) live under `backend-chat/`.
 
 ```
 backend-chat/              # Python backend (FastAPI + agent framework)
@@ -52,6 +52,7 @@ Dockerfile                 # Backend + nginx multi-stage build
 
 ```bash
 # Development (backend)
+(cd backend-chat && cp .env.example .env)                    # Env file lives in backend-chat/
 (cd backend-chat && uvicorn main:app --reload --port 30002) # Backend dev server
 (cd backend-chat && pip install -r requirements.txt)        # Install deps
 (cd backend-chat && pip install -e .[dev])                  # Install dev deps
@@ -59,8 +60,8 @@ Dockerfile                 # Backend + nginx multi-stage build
 # Development (frontend)
 (cd frontend-chat/fe && npm run dev)                   # Frontend dev server
 (cd frontend-chat/fe && npm run build)                 # Frontend build
-docker compose up -d                            # Full stack
-docker compose build                            # Build Docker
+docker compose --env-file backend-chat/.env up -d    # Full stack
+docker compose --env-file backend-chat/.env build    # Build Docker
 
 # Deployment (one command does everything)
 bash backend-chat/script/deploy/deploy.sh                # Full deploy
@@ -77,7 +78,7 @@ bash backend-chat/script/deploy/deploy.sh --skip-github  # Skip GitHub release
   - `snake_case` for Python modules, variables, and functions.
   - `PascalCase` for classes and Pydantic models.
   - Enum-style prefixes for related modules (e.g., `tree_docs.py`, `swagger2.py`).
-- Environment variables are loaded from `.env` via `python-dotenv` at startup (see `backend-chat/langweave/config.py`). Sensible defaults are defined in `.env.example` at the repo root.
+- Environment variables are loaded from `backend-chat/.env` via `python-dotenv` at startup (see `backend-chat/langweave/config.py`). Sensible defaults are defined in `backend-chat/.env.example`.
 
 ## Testing Guidelines
 
@@ -126,5 +127,5 @@ External dependencies: **MySQL** (required, used for checkpoints and agent data)
 
 - Docker multi-stage build: backend stage (Python 3.11-slim) + production stage (nginx with pre-built frontend).
 - The frontend SPA is built locally and copied into the nginx stage — it is **not** built inside Docker.
-- Set required environment variables in `.env` (see `.env.example`). The app will fail to start without a valid `LANGWEAVE_DATABASE_URL`.
+- Set required environment variables in `backend-chat/.env` (see `backend-chat/.env.example`). The app will fail to start without a valid `LANGWEAVE_DATABASE_URL`.
 - The production deployment entry point is `backend-chat/script/deploy/`. Refer to the scripts there for the full pipeline.
